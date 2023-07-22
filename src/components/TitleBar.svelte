@@ -1,36 +1,64 @@
-<script>
-    import { appWindow } from '@tauri-apps/api/window'
-    let href = "/"
-</script>
+<script lang=ts>
+// @ts-nocheck
 
-<!-- <svelte:head> -->
-<div data-tauri-drag-region class="titlebar" >
-    <div class="titlebar-button" id="titlebar-minimize">
-        <a on:click={() => appWindow.minimize()} {href}>
-            <img
-            src="https://api.iconify.design/mdi:window-minimize.svg"
-            alt="minimize"
-            />
+    import { appWindow } from "@tauri-apps/api/window";
+    export let leftButtons = [];
+    
+    let href = "/";
+</script>
+  
+  <div data-tauri-drag-region class="titlebar">
+  
+    <slot name="left">
+      {#each leftButtons as button}
+        <a 
+          class="titlebar-button"
+          on:click={button.onClick}
+          href={button.href}
+        >
+          {@html button.icon}
         </a>
-    </div>
-    <div class="titlebar-button" id="titlebar-maximize">
-        <a on:click|preventDefault={() => appWindow.toggleMaximize()} {href}>
-            <img
-            src="https://api.iconify.design/mdi:window-maximize.svg"
-            alt="maximize"
-            />
-        </a>
-    </div>
-    <div class="titlebar-button" id="titlebar-close" >
-        <a on:click={() => appWindow.close()} {href}>
-            <img
-            src="https://api.iconify.design/mdi:close.svg" 
-            alt="close"
-            />
-        </a>
-    </div>
-</div>
-<!-- </svelte:head> -->
+      {/each}
+    </slot>
+  
+    <a 
+      on:click={() => appWindow.minimize()}
+      class="titlebar-button" 
+      id="titlebar-minimize"
+      {href}
+    >
+      <img
+        src="https://api.iconify.design/mdi:window-minimize.svg"
+        alt="minimize"
+      />
+    </a>
+  
+    <a
+      on:click|preventDefault={() => appWindow.toggleMaximize()}
+      class="titlebar-button"
+      id="titlebar-maximize"
+      {href}
+    >
+      <img
+        src="https://api.iconify.design/mdi:window-maximize.svg"
+        alt="maximize" 
+      />
+    </a>
+  
+    <a
+      on:click={() => appWindow.close()}
+      class="titlebar-button"
+      id="titlebar-close"
+      {href}
+    >
+      <img 
+        src="https://api.iconify.design/mdi:close.svg"
+        alt="close" 
+      />
+    </a>
+  
+  </div>
+<svelte:body/>
 
 <style>
     .titlebar {
@@ -44,7 +72,7 @@
       left: 0;
       right: 0;
       padding-bottom: 10px;
-      border-radius: 5px 5px 0px 0px;
+      user-select: none;
     }
     .titlebar-button {
       display: inline-flex;
