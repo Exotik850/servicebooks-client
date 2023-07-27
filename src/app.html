@@ -21,30 +21,33 @@
 /* Can be forced with data-theme="light" */
 [data-theme="light"],
 :root:not([data-theme="dark"]) {
-  --primary: #e53935;
-  --primary-hover: #d32f2f;
-  --primary-focus: rgba(229, 57, 53, 0.125);
-  --primary-inverse: #FFF;
+  --primary: #92C29A;
+  --primary-hover: #1D7564;
+  --primary-focus: #166749;
+  --primary-inverse: #093B44;
+  --background-color: #0F2739;
 }
 
 /* Red Dark scheme (Auto) */
 /* Automatically enabled if user has Dark mode enabled */
 @media only screen and (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --primary: #e53935;
-    --primary-hover: #f44336;
-    --primary-focus: rgba(229, 57, 53, 0.25);
-    --primary-inverse: #FFF;
+    --primary: #92C29A;
+	--primary-hover: #1D7564;
+	--primary-focus: #166749;
+	--primary-inverse: #093B44;
+	--background-color: #0F2739;
   }
 }
 
 /* Red Dark scheme (Forced) */
 /* Enabled if forced with data-theme="dark" */
 [data-theme="dark"] {
-  --primary: #e53935;
-  --primary-hover: #f44336;
-  --primary-focus: rgba(229, 57, 53, 0.25);
-  --primary-inverse: #FFF;
+	--primary: #92C29A;
+	--primary-hover: #1D7564;
+	--primary-focus: #166749;
+	--primary-inverse: #093B44;
+	--background-color: #0F2739;
 }
 
 /* Red (Common styles) */
@@ -61,7 +64,7 @@
 }
 
 ::-webkit-scrollbar-thumb {
-	background: #d32f2f;
+	background: var(--primary-hover);
 	border-radius: 10px;
 }
 </style>

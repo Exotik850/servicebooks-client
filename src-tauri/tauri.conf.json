@@ -67,7 +67,7 @@
         "resizable": false,
         "title": "Servicebooks-Client",
         "decorations": false,
-        "width": 1000,
+        "width": 900,
         "focus": true,
         "center": true
       }

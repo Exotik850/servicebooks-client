@@ -2,15 +2,14 @@
     // @ts-nocheck
     import TitleBar from '../components/TitleBar.svelte'
     import { enhance } from '$app/forms';
-    import type { ActionData } from './$types';
-    import { invoiceSchema } from '$lib/invoiceSchema';
-    import { slide } from 'svelte/transition';
+    import * as yup from 'yup';
     import { quintOut } from 'svelte/easing'
     import {tweened} from 'svelte/motion';
+    import { error } from '@sveltejs/kit';
+    import NavButtons from '../components/NavButtons.svelte';
+    import Parts from '../components/Parts.svelte';
     
-    let step = 0;
-    let prevStep;
-    let numSteps = 3;
+    
 
     const progress = tweened(1, {
     duration: 400,
@@ -18,14 +17,51 @@
   });
   $: progress.set((step / 3) * 100)
 
-    export let form: ActionData;
-    $: console.log(form)
+    const partSchema = yup.object({
+        part_number: yup.string().trim().min(1).required(),
+        invoice_number: yup.number().required(),
+        distributor_number: yup.number().required(),  
+    }); 
+
+    const invoiceSchema = yup.object({
+        customer_first_name: yup.string().trim().min(3).required(),
+        customer_last_name: yup.string().trim().min(3).required(),
+        customer_address_1: yup.string().trim().required(),
+        customer_city: yup.string().trim().required(),
+        customer_zip_code: yup.string().trim().required(),
+        customer_phone_number: yup.number().min(1000000000).max(9999999999).required(),
+        product_code: yup.string().trim().min(8).max(10).required(),
+        serial_number: yup.number().min(10).max(10).required(),
+        model_number: yup.string().trim().min(8).required(),
+        purchase_date: yup.date().required(),
+        miles_traveled: yup.number().min(1).max(999).required(),
+        issue_description: yup.string().trim().required(),
+        parts: yup.array().of(partSchema),
+    });
 
     let invoice = {
-        appliance: {},
-        labour: {},
         parts: [],
-    };   
+    }; 
+    
+    let errors = {}
+
+    async function submitClaim() {
+        try {
+            await invoiceSchema.validate(invoice, {abortEarly: false});
+            alert(JSON.stringify(invoice, null, 2));
+            errors = {};
+        } catch (error) {
+            errors = error.inner.reduce((acc, err) => {
+                return { ...acc, [err.path]: err.message };
+            }, {});
+        }
+        console.log(invoice);
+        console.log(errors)
+    }
+
+    let step = 0;
+    let prevStep;
+    let numSteps = 3;
 
     function next() {
         if (step < numSteps) {
@@ -44,8 +80,7 @@
 <TitleBar/>
 <br/>
 <div class="container">
-    <progress value="{$progress}" max="100" class="form-section"/>
-    <form use:enhance method="POST">
+    <progress value="{$progress}" max="100" class="progress"/>
     {#if step === 0}
         <div class="form-section">
             <h2>Customer Information</h2>
@@ -66,61 +101,39 @@
     {:else if step === 2}
         <div class="form-section">
             <h2>Labour Information</h2>
-            <label>Miles Traveled: <input bind:value={invoice.labour.hours} type="number" min="0" /></label>
-            <label>Description of Issue: <input bind:value={invoice.labour.rate} type="number" min="0" /></label>
+            <label>Miles Traveled: <input bind:value={invoice.miles_traveled} type="number" min="1" /></label>
+            <label>Description of Issue: <input bind:value={invoice.issue_description}/></label>
         </div>
     {:else if step === 3}
         <div class="form-section">
-            <h2>Parts Used</h2>
-            <div class="parts-used">
-                {#each invoice.parts as part, index (index)}
-                    <div class="part">
-                        <label>Part {index + 1} Part Number: <input bind:value={part.part_number} /></label>
-                        <label>Part {index + 1} Invoice Number: <input bind:value={part.invoice_number} type="number" min="0" /></label>
-                        <label>Part {index + 1} Distributor: <input bind:value={part.distrubutor_number} type="number" min="0" /></label>
-                    </div>
-                {/each}
-                <button on:click|preventDefault={() => {invoice.parts.push({name: '', cost: 0}); invoice = invoice}}>Add Part</button>
-            </div>
+                    <Parts {invoice}/>
         </div>
-    {#if form?.packet.error}
-        <div class="form-section" aria-invalid="true">
-        {#each form.packet.errors as error}
-            <li>{error.field} : {error.message}</li>
-        {/each}
-        </div>
-    
-    {/if}
         <div class="form-section">
-            <button type="submit">Submit</button>
+            <button on:click|preventDefault={submitClaim} data-tooltip="Make sure you have everything you need!">Submit</button>
         </div>
     {/if}
-    
-    <div class="form-navigation">
-        <button on:click|preventDefault={prev} disabled={step === 0}>Previous</button>
-        <button on:click|preventDefault={next} disabled={step === 3}>Next</button>
-    </div>
-    </form>
+        <NavButtons {prev} {next} {step}/>
 </div>
 
 <style> 
     .container {
-        /* width: 50%; */
         margin-left: 25px;
     }
-    .part {
-        display: flex;
-        gap: 5px;
+    .progress {
+        position: fixed;
+        top: 40px;
+        width: 95%;
+        margin: auto;
     }
-    .form-navigation {
-        display: flex;
-        gap: 20px;
-        margin: 0 auto;
-        width: 95vw;
-        bottom: 0%;
+    button:active {
+        transform: scale(0.97);
     }
+
     .form-section {
         margin: 10px auto;
         width: 95vw;
+    }
+    h2 {
+        text-align: center;
     }
 </style>

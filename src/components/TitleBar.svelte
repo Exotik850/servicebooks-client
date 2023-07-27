@@ -89,8 +89,11 @@
     }
     .left {
       position: fixed;
-      left: 10px;
+      left: 6px;
       font-family: "Comfortaa";
       color: antiquewhite;
+    }
+    h5 {
+      margin-top: 2px;
     }
 </style>
