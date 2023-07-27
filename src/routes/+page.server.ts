@@ -5,6 +5,7 @@ import { invoke } from '@tauri-apps/api/tauri';
 export const actions: Actions = {
   default: async (event) => {
     const formData = Object.fromEntries(await event.request.formData());
+    console.log(formData);
     const invoiceData = invoiceSchema.safeParse(formData);
     console.log(invoiceData);
 
