@@ -8,6 +8,7 @@
 </script>
   
   <div data-tauri-drag-region class="titlebar">
+    <h5 class="left">ServiceBooks</h5>
   
     <slot name="left">
       {#each leftButtons as button}
@@ -58,6 +59,8 @@
     </a>
   
   </div>
+  <!-- <br/> -->
+  <br/>
 <svelte:body/>
 
 <style>
@@ -67,7 +70,7 @@
       display: flex;
       justify-content: flex-end;
       position: fixed;
-      background-color: var(--primary-inverse);
+      background-color: var(--primary-focus);
       top: 0;
       left: 0;
       right: 0;
@@ -82,6 +85,12 @@
       height: 30px;
     }
     .titlebar-button:hover {
-      background-color: var(--primary-hover);
+      background-color: var(--primary-inverse);
+    }
+    .left {
+      position: fixed;
+      left: 10px;
+      font-family: "Comfortaa";
+      color: antiquewhite;
     }
 </style>

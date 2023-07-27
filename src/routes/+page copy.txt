@@ -4,45 +4,101 @@
     import { enhance } from '$app/forms';
     import type { ActionData } from './$types';
     import { invoiceSchema } from '$lib/invoiceSchema';
+
     export let form: ActionData;
     $: console.log(form)
 
-    let invoice = {};    
+    let invoice = {
+        customer: {},
+        appliance: {},
+        labour: {},
+        parts: [],
+    };   
 
-    function snakeToTitleCase(text: string): string {
-        const words = text.split('_');
-        for (let i = 0; i < words.length; i++) {
-            words[i] = words[i][0].toUpperCase() + words[i].slice(1).toLowerCase();
+    let step = 0;
+    let numSteps = 3;
+
+    function exists(data){
+        data !== null && data !== undefined
+    }
+
+    function next() {
+        if (step < numSteps) {
+            step++;
         }
-        return words.join(' ');
     }
 
-    let titleButton = {
-        icon: 'https://icons8.com/icon/100066/1',
-        onClick: () => {},
-        href: '/',
+    function prev() {
+        if (step > 0) {
+            step--;
+        }
     }
-
 </script>
 <TitleBar/>
-<article>
+<div>
+    <progress value="{(step / 3) * 100}" max="100" class="form-section"></progress>
     <form use:enhance method="POST">
-
-    {#each Object.keys(invoiceSchema.shape) as key, i}
-        <label for={key} name={key}>{snakeToTitleCase(key)}
-            <input required name={key}>
-        </label>
-    {/each}
-
+    {#if step === 0}
+        <div class="form-section">
+            <h2>Customer Information</h2>
+            <label>Name: <input bind:value={invoice.customer.name} /></label>
+            <label>Email: <input bind:value={invoice.customer.email} type="email" /></label>
+            <label>Phone: <input bind:value={invoice.customer.phone} /></label>
+        </div>
+    {:else if step === 1}
+        <div class="form-section">
+            <h2>Appliance Information</h2>
+            <label>Model: <input bind:value={invoice.appliance.model} /></label>
+            <label>Serial Number: <input bind:value={invoice.appliance.serialNumber} type="number" max="999999999"/></label>
+            <label>Purchase Date: <input bind:value={invoice.appliance.purchaseDate} type="date" /></label>
+        </div>
+    {:else if step === 2}
+        <div class="form-section">
+            <h2>Labour Information</h2>
+            <label>Miles Traveled: <input bind:value={invoice.labour.hours} type="number" min="0" /></label>
+            <label>Description of Issue: <input bind:value={invoice.labour.rate} type="number" min="0" /></label>
+        </div>
+    {:else if step === 3}
+        <div class="form-section">
+            <h2>Parts Used</h2>
+            <div class="parts-used">
+                {#each invoice.parts as part, index (index)}
+                    <div class="part">
+                        <label>Part {index + 1} Name: <input bind:value={part.name} /></label>
+                        <label>Part {index + 1} Cost: <input bind:value={part.cost} type="number" min="0" /></label>
+                    </div>
+                {/each}
+                <button on:click|preventDefault={() => {invoice.parts.push({name: '', cost: 0}); invoice = invoice}}>Add Part</button>
+            </div>
+        </div>
+    {/if}
+    
+    <div class="form-navigation">
+        <button on:click|preventDefault={prev} disabled={step === 0}>Previous</button>
+        <button on:click|preventDefault={next} disabled={step === 3}>Next</button>
+    </div>
+    {#if step == 3}
     {#if form?.packet.error}
-        <div class="notice-error" aria-invalid="true">
+        <div class="form-section" aria-invalid="true">
         {#each form.packet.errors as error}
-            <li>{snakeToTitleCase(error.field)} : {error.message}</li>
+            <li>{error.field} : {error.message}</li>
         {/each}
         </div>
     {/if}
-
-    <button type="submit">Submit</button>
-
+    <div class="form-section">
+        <button type="submit" disabled={step != 3 && !exists(form?.packet.error)}>Submit</button>
+    </div>
+    {/if}
     </form>
-</article>
+</div>
+
+<style> 
+    .form-navigation {
+        display: flex;
+        margin: 20px 20px;
+    }
+    .form-section {
+        margin: 10px 10px auto;
+        width: 95vw;
+    }
+</style>

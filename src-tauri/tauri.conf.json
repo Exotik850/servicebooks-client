@@ -63,11 +63,11 @@
     "windows": [
       {
         "fullscreen": false,
-        "height": 550,
+        "height": 700,
         "resizable": false,
         "title": "Servicebooks-Client",
         "decorations": false,
-        "width": 800,
+        "width": 1000,
         "focus": true,
         "center": true
       }
