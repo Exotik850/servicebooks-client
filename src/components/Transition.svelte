@@ -1,7 +1,7 @@
 <script lang='ts'>
     import {fade, blur} from 'svelte/transition';
 
-    export let animDur: number = 100;
+    export let animDur: number = 150;
     export let ease = blur;
 </script>
 
