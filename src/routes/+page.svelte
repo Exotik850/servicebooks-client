@@ -7,6 +7,7 @@
     import NavButtons from '../components/NavButtons.svelte';
     import Parts from '../components/Parts.svelte';
     import Transition from '../components/Transition.svelte';
+    import { invoke } from '@tauri-apps/api'
     
     const progress = tweened(1, {
         duration: 400,
@@ -45,9 +46,13 @@
 
     async function submitClaim() {
         try {
-            await invoiceSchema.validate(invoice, {abortEarly: false});
+            // await invoiceSchema.validate(invoice, {abortEarly: false});
             alert(JSON.stringify(invoice, null, 2));
             errors = {};
+            await invoke("submit_claim", {claim: invoice})
+            .then((customer) => {
+                console.log(customer.GivenName, customer.FamilyName)
+            })
         } catch (error) {
             errors = error.inner.reduce((acc, err) => {
                 return { ...acc, [err.path]: err.message };
