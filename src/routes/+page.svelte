@@ -59,6 +59,8 @@
     let prevStep;
     let numSteps = 3;
 
+    const animDur = 300;
+
     function next() {
         if (step < numSteps) {
             prevStep = step;
@@ -78,7 +80,7 @@
 <div class="container">
     <progress value="{$progress}" max="100" class="progress"/>
     {#if step === 0}
-    <Transition key={step}>
+    <Transition>
         <div class="form-section">
             <h2>Customer Information</h2>
             <label>First Name: <input bind:value={invoice.customer_first_name} /></label>
@@ -89,6 +91,7 @@
         </div>
     </Transition>
     {:else if step === 1}
+    <Transition>
         <div class="form-section">
             <h2>Appliance Information</h2>
             <label>Product Code: <input bind:value={invoice.product_code} /></label>
@@ -96,24 +99,30 @@
             <label>Serial Number: <input bind:value={invoice.serial_numbeer} type="number" max="999999999"/></label>
             <label>Purchase Date: <input bind:value={invoice.purchase_date} type="date" /></label>
         </div>
+    </Transition>
     {:else if step === 2}
+    <Transition>
         <div class="form-section">
             <h2>Labour Information</h2>
             <label>Miles Traveled: <input bind:value={invoice.miles_traveled} type="number" min="1" /></label>
             <label>Description of Issue: <input bind:value={invoice.issue_description}/></label>
         </div>
+    </Transition>
     {:else if step === 3}
+    <Transition>
         <div class="form-section">
-                    <Parts {invoice}/>
+            <h2>Parts Used</h2>
+            <Parts {invoice}/>
         </div>
         {#if JSON.stringify(errors) != '{}'}
             {#each Object.entries(errors) as [key, error]}
             <div class="form-error"><span>{key}</span> : <span>{error}</span></div>
             {/each}
         {/if}
-        <div class="form-section">
+        <div class="form-section" >
             <button on:click|preventDefault={submitClaim} data-tooltip="Make sure you have everything you need!">Submit</button>
         </div>
+    </Transition>
     {/if}
         <NavButtons {prev} {next} {step}/>
 </div>

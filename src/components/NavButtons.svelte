@@ -8,8 +8,8 @@
 </script>
 
 <div class="form-navigation">
-    <button class="nav" on:click|preventDefault={prev} disabled={step === 0}>&larr;</button>
-    <button class="nav" on:click|preventDefault={next} disabled={step === maxStep}>&rarr;</button>
+    <button class="nav" on:click|preventDefault={prev} disabled={step === 0}>&lt;</button>
+    <button class="nav" on:click|preventDefault={next} disabled={step === maxStep}>&gt;</button>
 </div>
 
 <style>
@@ -30,10 +30,12 @@
         color:white;
         opacity: 0.5;
         transition: 0.3s ease;
-        width: 10%;
+        width: 40px;
+        height: 40px;
         pointer-events: all;
-        text-align: center;
+        text-align: left;
         border-radius: 50%;
+        line-height: 0px;
     }
     .nav:hover {
         opacity: 1;

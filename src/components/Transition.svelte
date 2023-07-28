@@ -1,12 +1,12 @@
 <script lang='ts'>
-    import {slide} from 'svelte/transition';
+    import {fade, blur} from 'svelte/transition';
 
-    export let key: String;
-    export let duration: number = 300;
+    export let animDur: number = 100;
+    export let ease = blur;
 </script>
 
-{#key key}
-<div transition:slide={{duration}}>
+<!-- {#key key} -->
+<div in:ease={{duration:animDur, delay:animDur}} out:ease={{duration:animDur}}>
     <slot/>
 </div>
-{/key}
+<!-- {/key} -->
