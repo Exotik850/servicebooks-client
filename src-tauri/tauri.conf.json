@@ -64,7 +64,6 @@
       {
         "fullscreen": false,
         "height": 700,
-        "resizable": false,
         "title": "Servicebooks-Client",
         "decorations": false,
         "width": 900,

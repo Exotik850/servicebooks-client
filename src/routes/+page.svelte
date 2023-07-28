@@ -1,20 +1,19 @@
 <script lang='ts'>
     // @ts-nocheck
-    import TitleBar from '../components/TitleBar.svelte'
     import * as yup from 'yup';
     import { quintOut } from 'svelte/easing'
     import {tweened} from 'svelte/motion';
+    import TitleBar from '../components/TitleBar.svelte'
     import NavButtons from '../components/NavButtons.svelte';
     import Parts from '../components/Parts.svelte';
     import Transition from '../components/Transition.svelte';
     
-    
-
     const progress = tweened(1, {
-    duration: 400,
-    easing: quintOut
-  });
-  $: progress.set((step / 3) * 100)
+        duration: 400,
+        easing: quintOut
+    });
+
+    $: progress.set((step / 3) * 100)
 
     const partSchema = yup.object({
         part_number: yup.string().trim().min(1).required(),
@@ -54,8 +53,6 @@
                 return { ...acc, [err.path]: err.message };
             }, {});
         }
-        console.log(invoice);
-        console.log(errors)
     }
 
     let step = 0;
@@ -109,6 +106,11 @@
         <div class="form-section">
                     <Parts {invoice}/>
         </div>
+        {#if JSON.stringify(errors) != '{}'}
+            {#each Object.entries(errors) as [key, error]}
+            <div class="form-error"><span>{key}</span> : <span>{error}</span></div>
+            {/each}
+        {/if}
         <div class="form-section">
             <button on:click|preventDefault={submitClaim} data-tooltip="Make sure you have everything you need!">Submit</button>
         </div>
