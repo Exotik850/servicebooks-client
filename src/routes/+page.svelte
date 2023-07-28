@@ -1,13 +1,12 @@
 <script lang='ts'>
     // @ts-nocheck
     import TitleBar from '../components/TitleBar.svelte'
-    import { enhance } from '$app/forms';
     import * as yup from 'yup';
     import { quintOut } from 'svelte/easing'
     import {tweened} from 'svelte/motion';
-    import { error } from '@sveltejs/kit';
     import NavButtons from '../components/NavButtons.svelte';
     import Parts from '../components/Parts.svelte';
+    import Transition from '../components/Transition.svelte';
     
     
 
@@ -82,6 +81,7 @@
 <div class="container">
     <progress value="{$progress}" max="100" class="progress"/>
     {#if step === 0}
+    <Transition key={step}>
         <div class="form-section">
             <h2>Customer Information</h2>
             <label>First Name: <input bind:value={invoice.customer_first_name} /></label>
@@ -90,6 +90,7 @@
             <label>Zip Code: <input bind:value={invoice.customer_zip_code} /></label>
             <label>Phone: <input bind:value={invoice.customer_phone_number} type="tel"/></label>
         </div>
+    </Transition>
     {:else if step === 1}
         <div class="form-section">
             <h2>Appliance Information</h2>

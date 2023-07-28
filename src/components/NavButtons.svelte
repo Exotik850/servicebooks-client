@@ -4,11 +4,12 @@
     export let prev;
     export let next;
     export let step;
+    export let maxStep = 3;
 </script>
 
 <div class="form-navigation">
     <button class="nav" on:click|preventDefault={prev} disabled={step === 0}>&larr;</button>
-    <button class="nav" on:click|preventDefault={next} disabled={step === 3}>&rarr;</button>
+    <button class="nav" on:click|preventDefault={next} disabled={step === maxStep}>&rarr;</button>
 </div>
 
 <style>
