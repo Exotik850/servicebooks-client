@@ -2,7 +2,6 @@
 // @ts-nocheck
 
     import { appWindow } from "@tauri-apps/api/window";
-    export let leftButtons = [];
     
     let href = "/";
 </script>
@@ -11,15 +10,11 @@
     <h5 class="left">ServiceBooks</h5>
   
     <slot name="left">
-      {#each leftButtons as button}
         <a 
-          class="titlebar-button"
-          on:click={button.onClick}
-          href={button.href}
-        >
-          {@html button.icon}
+        {href}
+        class="titlebar-button menu">
+          &equiv;
         </a>
-      {/each}
     </slot>
   
     <a 
@@ -61,7 +56,7 @@
   </div>
   <!-- <br/> -->
   <br/>
-<svelte:body/>
+<svelte:head/>
 
 <style>
     .titlebar {
@@ -89,8 +84,17 @@
     }
     .left {
       position: fixed;
-      left: 6px;
+      left: 30px;
       font-family: "Comfortaa";
+      color: antiquewhite;
+    }
+    .menu {
+      font-size: 1.5rem;
+      position: absolute;
+      top: -3px;
+      text-decoration: none;
+      left: 0px;
+      height: 30px;
       color: antiquewhite;
     }
     h5 {
