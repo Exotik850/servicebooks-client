@@ -23,7 +23,7 @@ async fn submit_claim(claim: serde_json::Value, qb: State<'_, QBState>) -> Resul
   let first_name = get_str!(claim, "customer_first_name");
   let last_name = get_str!(claim, "customer_last_name");
   println!("{first_name} {last_name}");
-  let mut custs = Customer::query(&qb.0, "where GivenName = '{first_name}' and FamilyName = '{last_name}'").await?;
+  let mut custs = Customer::query(&qb.0, &format!("where GivenName = '{first_name}' and FamilyName = '{last_name}'")).await?;
   println!("{custs:?}");
   Ok(custs.remove(0))
 }

@@ -51,7 +51,7 @@
             errors = {};
             await invoke("submit_claim", {claim: invoice})
             .then((customer) => {
-                console.log(customer.GivenName, customer.FamilyName)
+                console.log(customer)
             })
         } catch (error) {
             errors = error.inner.reduce((acc, err) => {
