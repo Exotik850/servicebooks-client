@@ -9,7 +9,6 @@
         invoice = invoice
     }
 
-    
     function addPart() {
         invoice.parts.push({part_number: '', invoice_number: '', distributor_number: ''});
         invoice = invoice
@@ -18,12 +17,22 @@
 
 <div class="parts-used">
     {#each invoice.parts as part, index (index)}
-        <div class="part" class:bottom={index != invoice.parts.length - 1} transition:slide={{duration:250}}>
-            <label>Part {index + 1} Part Number: <input bind:value={part.part_number} /></label>
+    <div class:bottom={index != invoice.parts.length - 1} transition:fade>
+        <span>Part {index + 1}</span>
+        <div class="part">
+            <label>Part Number: <input bind:value={part.part_number} /></label>
             <label>Invoice Number: <input bind:value={part.invoice_number} type="number" min="0" /></label>
-            <label>Distributor: <input bind:value={part.distrubutor_number} type="number" min="0" /></label>
+            <label>Distributor: 
+                <select bind:value={part.distributor_number}>
+                    <!-- TODO: ADD DISTRIBUTOR NUMBERS -->
+                    <option value="" selected>Marcone</option>
+                    <option value="">Reliable Parts</option>
+                    <option value="">Encompass</option>
+                </select>
+            </label>
             <button class='delete' on:click|preventDefault={deletePart(index)}>x</button>
         </div>
+    </div>
     {/each}
     <button on:click|preventDefault={addPart} class="add secondary">Add Part</button>
 </div>

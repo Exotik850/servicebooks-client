@@ -21,7 +21,7 @@ tauri = { version = "1.4.0", features = [ "window-close", "window-minimize", "wi
 quick-oxibooks = { path="../../quick-oxibooks", features= ["cache"] }
 service-poxi = {path="../../service-poxi"}
 chrono = "0.4.26"
-tokio = {version = "1.29.1", features = ["full"] }
+tokio = {version = "1.29.1", features = ["macros"] }
 
 
 [features]
