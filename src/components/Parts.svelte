@@ -1,6 +1,6 @@
 <script lang='ts'>
     // @ts-nocheck
-    import { fade } from "svelte/transition";
+    import { slide } from "svelte/transition";
 
     export let invoice;
 
@@ -18,7 +18,7 @@
 
 <div class="parts-used">
     {#each invoice.parts as part, index (index)}
-        <div class="part" class:bottom={index != invoice.parts.length - 1} transition:fade>
+        <div class="part" class:bottom={index != invoice.parts.length - 1} transition:slide={{duration:250}}>
             <label>Part {index + 1} Part Number: <input bind:value={part.part_number} /></label>
             <label>Invoice Number: <input bind:value={part.invoice_number} type="number" min="0" /></label>
             <label>Distributor: <input bind:value={part.distrubutor_number} type="number" min="0" /></label>
