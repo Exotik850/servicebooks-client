@@ -4,9 +4,9 @@
 mod models;
 use quick_oxibooks::actions::QBQuery;
 use quick_oxibooks::error::APIError;
-use quick_oxibooks::{Quickbooks, Authorized, Environment};
+use quick_oxibooks::{client::Quickbooks, Authorized, Environment, Cache};
 use quick_oxibooks::types::models::Customer;
-use tauri::{State, WindowEvent};
+use tauri::{State, WindowEvent, Manager};
 
 struct QBState(Quickbooks<Authorized>);
 
@@ -23,7 +23,8 @@ async fn submit_claim(claim: serde_json::Value, qb: State<'_, QBState>) -> Resul
   let first_name = get_str!(claim, "customer_first_name");
   let last_name = get_str!(claim, "customer_last_name");
   println!("{first_name} {last_name}");
-  let mut custs = Customer::query(&qb.0, "where GivenName = '{first_name}' and FamilyName = '{last_name}'").await?;
+  let st = format!("where GivenName = '{first_name}' and FamilyName = '{last_name}'");
+  let mut custs = Customer::query(&qb.0, &st).await?;
   println!("{custs:?}");
   Ok(custs.remove(0))
 }
@@ -35,14 +36,23 @@ async fn main() {
   tauri::Builder::default()
     .manage(QBState(qb))
     .invoke_handler(tauri::generate_handler![submit_claim])
-    // .on_window_event(|event| {
-    //   match event.event() {
-    //     &WindowEvent::CloseRequested { api, .. } => {
-          
-    //     },
-    //     _ => ()
-    //   }
-    // })
+    .on_window_event(|event| {
+      match event.event() {
+        WindowEvent::CloseRequested { api, .. } => {
+          api.prevent_close();
+          let window = event.window();
+          let state: State<QBState> = window.state();
+          state.0.cleanup();
+          window.close().unwrap();
+        },
+        WindowEvent::Destroyed => {
+          let window = event.window();
+          let state: State<QBState> = window.state();
+          state.0.cleanup();
+        }
+        _ => ()
+      }
+    })
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
