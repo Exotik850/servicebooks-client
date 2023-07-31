@@ -17,7 +17,7 @@
 
 <div class="parts-used">
     {#each invoice.parts as part, index (index)}
-    <div class:bottom={index != invoice.parts.length - 1} transition:fade>
+    <div class:bottom={index != invoice.parts.length - 1} transition:slide>
         <span>Part {index + 1}</span>
         <div class="part">
             <label>Part Number: <input bind:value={part.part_number} /></label>
