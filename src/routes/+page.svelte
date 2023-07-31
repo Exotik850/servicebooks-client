@@ -47,7 +47,6 @@
     async function submitClaim() {
         try {
             // await invoiceSchema.validate(invoice, {abortEarly: false});
-            alert(JSON.stringify(invoice, null, 2));
             errors = {};
             await invoke("submit_claim", {claim: invoice})
             .then((customer) => {
@@ -80,6 +79,31 @@
         }
     }
 </script>
+
+<!-- 
+    Forms needed:
+        Customer:
+            Name: First Last
+            Address: Address Line, City, Zip
+            Phone
+            Email
+        Appliance:
+            Product Code
+            Model Number
+            Serial Number
+            Purchase date
+        Problem: 
+            Defect Code
+            Repair Code
+            Request Date
+        Labor:
+            Completion Date
+            Miles travelled
+            Description of repair
+
+        
+ -->
+
 <TitleBar/>
 <br/>
 <div class="container">
