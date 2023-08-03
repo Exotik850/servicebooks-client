@@ -2,11 +2,11 @@
     import {fade, blur} from 'svelte/transition';
 
     export let animDur: number = 150;
-    export let ease = blur;
+    export let trans = fade;
 </script>
 
 <!-- {#key key} -->
-<div in:ease={{duration:animDur, delay:animDur}} out:ease={{duration:animDur}}>
+<div in:trans={{duration:animDur, delay:animDur}} out:trans={{duration:animDur}}>
     <slot/>
 </div>
 <!-- {/key} -->

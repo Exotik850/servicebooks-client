@@ -1,3 +1,26 @@
+<!-- 
+    Forms needed:
+        Customer:
+            Name: First Last
+            Address: Address Line, State, City, Zip
+            Phone
+            Email
+        Appliance:
+            Product Code
+            Model Number
+            Serial Number
+            Purchase date
+        Problem: 
+            Defect Code
+            Repair Code
+            Request Date
+        Labor:
+            Completion Date
+            Miles travelled
+            Description of repair
+
+        
+ -->
 <script lang='ts'>
     // @ts-nocheck
     import * as yup from 'yup';
@@ -26,9 +49,11 @@
         customer_first_name: yup.string().trim().min(3).required(),
         customer_last_name: yup.string().trim().min(3).required(),
         customer_address_1: yup.string().trim().required(),
+        customer_state: yup.string().trim().required(),
         customer_city: yup.string().trim().required(),
         customer_zip_code: yup.string().trim().required(),
-        customer_phone_number: yup.number().min(1000000000).max(9999999999).required(),
+        customer_email: yup.string().email(),
+        customer_phone_number: yup.string().matches('^(\+0?1\s)?\(?\d{3}\)?[\s.-]\d{3}[\s.-]\d{4}$'),
         product_code: yup.string().trim().min(8).max(10).required(),
         serial_number: yup.number().min(10).max(10).required(),
         model_number: yup.string().trim().min(8).required(),
@@ -46,7 +71,7 @@
 
     async function submitClaim() {
         try {
-            // await invoiceSchema.validate(invoice, {abortEarly: false});
+            await invoiceSchema.validate(invoice, {abortEarly: false});
             errors = {};
             await invoke("submit_claim", {claim: invoice})
             .then((customer) => {
@@ -63,8 +88,6 @@
     let prevStep;
     let numSteps = 3;
 
-    const animDur = 300;
-
     function next() {
         if (step < numSteps) {
             prevStep = step;
@@ -80,29 +103,10 @@
     }
 </script>
 
-<!-- 
-    Forms needed:
-        Customer:
-            Name: First Last
-            Address: Address Line, City, Zip
-            Phone
-            Email
-        Appliance:
-            Product Code
-            Model Number
-            Serial Number
-            Purchase date
-        Problem: 
-            Defect Code
-            Repair Code
-            Request Date
-        Labor:
-            Completion Date
-            Miles travelled
-            Description of repair
-
-        
- -->
+<svelte:head>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+</svelte:head>
 
 <TitleBar/>
 <br/>
@@ -112,11 +116,19 @@
     <Transition>
         <div class="form-section">
             <h2>Customer Information</h2>
-            <label>First Name: <input bind:value={invoice.customer_first_name} /></label>
-            <label>Last Name: <input bind:value={invoice.customer_last_name} /></label>
-            <label>Street Address: <input bind:value={invoice.customer_address_1} /></label>
-            <label>Zip Code: <input bind:value={invoice.customer_zip_code} /></label>
-            <label>Phone: <input bind:value={invoice.customer_phone_number} type="tel"/></label>
+            <div class="grid">
+                <label>First Name: <input bind:value={invoice.customer_first_name}/></label>
+                <label>Last Name: <input bind:value={invoice.customer_last_name}/></label>
+            </div>
+            <label>Street Address: <input bind:value={invoice.customer_address_1}/></label>
+            <div class="grid">
+                <label>State: <input bind:value={invoice.customer_state} /></label>
+                <label>Zip Code: <input bind:value={invoice.customer_zip_code} /></label>
+            </div>
+            <div class="grid">
+                <label>Phone Number: <input bind:value={invoice.customer_phone_number} type="tel"/></label>
+                <label>Email: <input bind:value={invoice.customer_email} type="email"/></label>
+            </div>
         </div>
     </Transition>
     {:else if step === 1}
@@ -134,7 +146,7 @@
         <div class="form-section">
             <h2>Labour Information</h2>
             <label>Miles Traveled: <input bind:value={invoice.miles_traveled} type="number" min="1" /></label>
-            <label>Description of Issue: <input bind:value={invoice.issue_description}/></label>
+            <label>Description of Issue:<textarea rows="10" on:resize|preventDefault bind:value={invoice.issue_description}/></label>
         </div>
     </Transition>
     {:else if step === 3}
@@ -160,6 +172,14 @@
     .container {
         margin-left: 25px;
     }
+    .grid {
+        display: flex;
+        flex: 1 1 auto;
+    }
+    .grid label {
+        margin: auto;
+        width: 50%;
+    }
     .progress {
         position: fixed;
         top: 40px;
@@ -169,10 +189,12 @@
     button:active {
         transform: scale(0.97);
     }
-
     .form-section {
         margin: 10px auto;
         width: 95vw;
+    }
+    .form-section textarea {
+        resize: none;
     }
     h2 {
         text-align: center;

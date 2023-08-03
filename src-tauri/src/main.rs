@@ -5,7 +5,7 @@ mod models;
 use quick_oxibooks::actions::QBQuery;
 use quick_oxibooks::error::APIError;
 use quick_oxibooks::{client::Quickbooks, Authorized, Environment, Cache};
-use quick_oxibooks::types::models::Customer;
+use quick_oxibooks::types::Customer;
 use tauri::{State, WindowEvent, Manager};
 
 struct QBState(Quickbooks<Authorized>);
@@ -24,9 +24,9 @@ async fn submit_claim(claim: serde_json::Value, qb: State<'_, QBState>) -> Resul
   let last_name = get_str!(claim, "customer_last_name");
   println!("{first_name} {last_name}");
   let st = format!("where GivenName = '{first_name}' and FamilyName = '{last_name}'");
-  let mut custs = Customer::query(&qb.0, &st).await?;
+  let custs = Customer::query_single(&qb.0, &st).await?;
   println!("{custs:?}");
-  Ok(custs.remove(0))
+  Ok(custs)
 }
 
 #[tokio::main]

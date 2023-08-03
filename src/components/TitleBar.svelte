@@ -13,7 +13,7 @@
         <a 
         {href}
         class="titlebar-button menu">
-          &equiv;
+          <i class="material-icons">menu</i>
         </a>
     </slot>
   
@@ -23,10 +23,7 @@
       id="titlebar-minimize"
       {href}
     >
-      <img
-        src="https://api.iconify.design/mdi:window-minimize.svg"
-        alt="minimize"
-      />
+      <i class="material-icons">minimize</i>
     </a>
   
     <a
@@ -35,10 +32,8 @@
       id="titlebar-maximize"
       {href}
     >
-      <img
-        src="https://api.iconify.design/mdi:window-maximize.svg"
-        alt="maximize" 
-      />
+      <i class="material-icons">maximize</i>
+
     </a>
   
     <a
@@ -47,10 +42,8 @@
       id="titlebar-close"
       {href}
     >
-      <img 
-        src="https://api.iconify.design/mdi:close.svg"
-        alt="close" 
-      />
+      <i class="material-icons">close</i>
+
     </a>
   
   </div>
@@ -78,6 +71,8 @@
       align-items: center;
       width: 30px;
       height: 30px;
+      text-decoration: none;
+      color: antiquewhite;
     }
     .titlebar-button:hover {
       background-color: var(--primary-inverse);

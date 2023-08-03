@@ -8,8 +8,8 @@
 </script>
 
 <div class="form-navigation">
-    <button class="nav" on:click|preventDefault={prev} disabled={step === 0}>&lt;</button>
-    <button class="nav" on:click|preventDefault={next} disabled={step === maxStep}>&gt;</button>
+    <button class="nav" on:click|preventDefault={prev} disabled={step === 0}><i class="material-icons">arrow_back</i></button>
+    <button class="nav" on:click|preventDefault={next} disabled={step === maxStep}><i class="material-icons">arrow_forward</i></button>
 </div>
 
 <style>
@@ -25,7 +25,6 @@
     }
     .nav {
         background: none;
-        border: none;
         font-size: 2rem;
         color:white;
         opacity: 0.5;
@@ -42,6 +41,14 @@
         transform: scale(1.1);
     }
     .nav:active {
-        transform: scale(0.97);
+        transform: scale(0.9);
+    }
+    .nav:focus,
+    .nav:active,
+    .nav {
+        outline-width: 0;
+        outline: none;
+        border: none;
+        box-shadow: none;
     }
 </style>
