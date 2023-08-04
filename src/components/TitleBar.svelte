@@ -2,20 +2,53 @@
 // @ts-nocheck
 
     import { appWindow } from "@tauri-apps/api/window";
+    import Dropdown from "./Dropdown.svelte";
+
+    enum State {
+        CLAIM_FORM = "CLAIM_FORM",
+        CLAIM_SEARCH = "CLAIM_SEARCH",
+    }
     
     let href = "/";
+
+    export let state;
+
+    function changeState(changeTo) {
+      state = changeTo
+    }
+
+    let items = [
+    { id: 1, label: 'Option 1', action: () => console.log('Option 1 selected') },
+    { id: 2, label: 'Option 2', action: () => console.log('Option 2 selected') },
+  ];
+
+  const handleSelect = (event) => {
+    let item = event.detail;
+    item.action();
+  };
 </script>
   
   <div data-tauri-drag-region class="titlebar">
-    <h5 class="left">ServiceBooks</h5>
+    <h5 class="title">ServiceBooks</h5>
   
-    <slot name="left">
-        <a 
-        {href}
-        class="titlebar-button menu">
-          <i class="material-icons">menu</i>
-        </a>
-    </slot>
+    <!-- <Menu origin="top left">
+      <div slot="activator">
+          <a 
+          {href}
+          class="titlebar-button menu">
+            <i class="material-icons">menu</i>
+          </a>
+      </div> 
+      <div class="titlebar-button menu">
+          
+          <Menuitem class="menu" on:click={() => changeState(State.CLAIM_FORM)}>Claim Form</Menuitem>
+          <Menuitem class="menu" on:click={() => changeState(State.CLAIM_SEARCH)}>Claim Search</Menuitem>
+        </div>
+    </Menu> -->
+
+    <div class="titlebar-button menu">
+      <Dropdown {items} on:select={handleSelect} />
+    </div>
   
     <a 
       on:click={() => appWindow.minimize()}
@@ -47,7 +80,7 @@
     </a>
   
   </div>
-  <!-- <br/> -->
+  <br/>
   <br/>
 <svelte:head/>
 
@@ -62,7 +95,6 @@
       top: 0;
       left: 0;
       right: 0;
-      padding-bottom: 10px;
       user-select: none;
     }
     .titlebar-button {
@@ -77,19 +109,21 @@
     .titlebar-button:hover {
       background-color: var(--primary-inverse);
     }
-    .left {
+    .title {
       position: fixed;
-      left: 30px;
+      left: 40px;
       font-family: "Comfortaa";
       color: antiquewhite;
     }
     .menu {
       font-size: 1.5rem;
       position: absolute;
-      top: -3px;
+      top: -7px;
       text-decoration: none;
+      text-align: center;
       left: 0px;
-      height: 30px;
+      height: 37px;
+      width: 35px;
       color: antiquewhite;
     }
     h5 {

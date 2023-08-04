@@ -64,11 +64,17 @@
         width: 45px;
         height: 40px;
         border-radius: 50%;
+        box-shadow: none;
     }
 
     .delete:hover {
         background: darkred;
         transform: scale(1.1);
+    }
+
+    .delete:active {
+        background: darkred;
+        transform: scale(0.9);
     }
 
     .add {
