@@ -1528,6 +1528,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "inter-struct"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "322eece48523a09060b7572296a3423bb6fc963462cfc8bf5fc6117510e131cf"
+dependencies = [
+ "inter-struct-codegen",
+]
+
+[[package]]
+name = "inter-struct-codegen"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58ce21bc89c44afac3bdf0cb5c363b4b91cef34e14aa612f7a17bc55f42f1ab7"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2",
+ "quote",
+ "syn 1.0.109",
+]
+
+[[package]]
 name = "intuit-oxi-auth"
 version = "0.1.0"
 dependencies = [
@@ -2928,6 +2949,7 @@ name = "service-poxi"
 version = "0.1.1"
 dependencies = [
  "derive_builder",
+ "inter-struct",
  "reqwest",
  "serde",
  "serde_json",

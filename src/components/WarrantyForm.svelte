@@ -79,6 +79,30 @@
     }
 </script>
 
+<!-- 
+    Forms needed:
+        Customer:
+            Name: First Last
+            Address: Address Line, State, City, Zip
+            Phone
+            Email
+        Appliance:
+            Product Code
+            Model Number
+            Serial Number
+            Purchase date
+        Problem: 
+            Defect Code
+            Repair Code
+            Request Date
+        Labor:
+            Completion Date
+            Miles travelled
+            Description of repair
+
+        
+ -->
+
 <div class="container">
     {#if step === 0}
     <Transition>

@@ -1,31 +1,10 @@
-<!-- 
-    Forms needed:
-        Customer:
-            Name: First Last
-            Address: Address Line, State, City, Zip
-            Phone
-            Email
-        Appliance:
-            Product Code
-            Model Number
-            Serial Number
-            Purchase date
-        Problem: 
-            Defect Code
-            Repair Code
-            Request Date
-        Labor:
-            Completion Date
-            Miles travelled
-            Description of repair
-
-        
- -->
 <script lang='ts'>
     // @ts-nocheck
     
+    import ClaimSearch from '../components/ClaimSearch.svelte';
     import TitleBar from '../components/TitleBar.svelte'
     import WarrantyForm from '../components/WarrantyForm.svelte';
+    import Transition from '../components/Transition.svelte';
 
     
     enum State {
@@ -41,12 +20,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
 </svelte:head>
 
-<TitleBar {state}/>
+<TitleBar bind:state={state}/>
 {#if state === State.CLAIM_FORM}
+<Transition>
 <WarrantyForm />
+</Transition>
 {:else if state === State.CLAIM_SEARCH}
-<p>peepee</p>
+<Transition>
+<ClaimSearch/>
+</Transition>
 {/if}
-<style> 
-    
-</style>

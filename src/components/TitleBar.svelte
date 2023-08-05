@@ -18,8 +18,8 @@
     }
 
     let items = [
-    { id: 1, label: 'Option 1', action: () => console.log('Option 1 selected') },
-    { id: 2, label: 'Option 2', action: () => console.log('Option 2 selected') },
+    { id: 1, label: 'Claim Form', action: () => changeState(State.CLAIM_FORM) },
+    { id: 2, label: 'Claim Search', action: () => changeState(State.CLAIM_SEARCH) },
   ];
 
   const handleSelect = (event) => {

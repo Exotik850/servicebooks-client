@@ -1,12 +1,15 @@
 use chrono::NaiveDate;
+use quick_oxibooks::types::{Invoice, QBItem};
 use serde::{Deserialize, Serialize};
+use service_poxi::Claim;
 
 
-#[derive(Default, Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub(crate) struct HAInvoice {
-    doc_number: String,
-    part_invoice_number: String,
-    voucher_number: String,
-    claim_number: String,
-    filed_date: NaiveDate,
+    qb_invoice: Invoice,
+    sb_claim: Claim
+}
+
+impl QBItem for HAInvoice {
+
 }
