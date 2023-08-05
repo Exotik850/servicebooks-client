@@ -1,15 +1,36 @@
-use chrono::NaiveDate;
 use quick_oxibooks::types::{Invoice, QBItem};
 use serde::{Deserialize, Serialize};
-use service_poxi::Claim;
+use service_poxi::{ClaimUnion};
 
 
-#[derive(Default, Serialize, Deserialize, Debug, PartialEq, Clone)]
+#[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct HAInvoice {
     qb_invoice: Invoice,
-    sb_claim: Claim
+    sb_claim: ClaimUnion
 }
 
 impl QBItem for HAInvoice {
+    fn id(&self) -> Option<&String> {
+        self.qb_invoice.id()
+    }
 
+    fn clone_id(&self) -> Option<String> {
+        self.qb_invoice.clone_id()
+    }
+
+    fn sync_token(&self) -> Option<&String> {
+        self.qb_invoice.sync_token()
+    }
+
+    fn meta_data(&self) -> Option<&quick_oxibooks::types::common::MetaData> {
+        self.qb_invoice.meta_data.as_ref()
+    }
+
+    fn name() -> &'static str {
+        Invoice::name()
+    }
+
+    fn qb_id() -> &'static str {
+        Invoice::qb_id()
+    }
 }

@@ -6,9 +6,12 @@ use quick_oxibooks::actions::QBQuery;
 use quick_oxibooks::error::APIError;
 use quick_oxibooks::{client::Quickbooks, Authorized, Environment, Cache};
 use quick_oxibooks::types::Customer;
-use tauri::{State, WindowEvent, Manager};
+use service_poxi::{RetrievedClaim, ClaimHandler, Retreive, Submit};
+use tauri::{State, WindowEvent, Manager, generate_context};
 
 struct QBState(Quickbooks<Authorized>);
+struct SPRetrieveState(ClaimHandler<Retreive>);
+struct SPSubmitState(ClaimHandler<Submit>);
 
 /// Access a string property, default to empty string if missing
 macro_rules! get_str {
@@ -29,13 +32,25 @@ async fn submit_claim(claim: serde_json::Value, qb: State<'_, QBState>) -> Resul
   Ok(custs)
 }
 
+#[tauri::command]
+async fn get_claim(claim_number: String, retreive_handler: State<'_, SPRetrieveState>) -> Result<RetrievedClaim, String> {
+  let retreive_handler = &retreive_handler.0;
+  retreive_handler.get_claim(&claim_number)
+  .await
+  .map_err(|e| e.to_string())?
+  .claims.pop()
+  .ok_or(format!("No claim found for claim number: {claim_number}"))
+}
+
 #[tokio::main]
 async fn main() {
   let qb = Quickbooks::new_from_env("4620816365257778210", Environment::SANDBOX).await.unwrap();
 
   tauri::Builder::default()
     .manage(QBState(qb))
-    .invoke_handler(tauri::generate_handler![submit_claim])
+    .manage(SPRetrieveState(ClaimHandler::<Retreive>::new()))
+    .manage(SPSubmitState(ClaimHandler::<Submit>::new()))
+    .invoke_handler(tauri::generate_handler![submit_claim, get_claim])
     .on_window_event(|event| {
       match event.event() {
         WindowEvent::CloseRequested { api, .. } => {
@@ -53,6 +68,6 @@ async fn main() {
         _ => ()
       }
     })
-    .run(tauri::generate_context!())
+    .run(generate_context!())
     .expect("error while running tauri application");
 }

@@ -58,7 +58,8 @@
       left: 5px;
       top: 5px;
       background-color: var(--primary);
-      color:antiquewhite;
+      /* color: #0e2207; */
+      color: var(--background-color);
       box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
       z-index: 99;
       border-radius: 5px;
