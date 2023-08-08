@@ -2,11 +2,10 @@ use quick_oxibooks::types::{Invoice, QBItem};
 use serde::{Deserialize, Serialize};
 use service_poxi::ClaimUnion;
 
-
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct HAInvoice {
     qb_invoice: Invoice,
-    sb_claim: ClaimUnion
+    sb_claim: ClaimUnion,
 }
 
 impl QBItem for HAInvoice {
