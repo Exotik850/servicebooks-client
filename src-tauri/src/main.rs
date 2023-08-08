@@ -35,11 +35,13 @@ async fn submit_claim(claim: serde_json::Value, qb: State<'_, QBState>) -> Resul
 #[tauri::command]
 async fn get_claim(claim_number: String, retreive_handler: State<'_, SPRetrieveState>) -> Result<RetrievedClaim, String> {
   let retreive_handler = &retreive_handler.0;
-  retreive_handler.get_claim(&claim_number)
-  .await
-  .map_err(|e| e.to_string())?
-  .claims.pop()
-  .ok_or(format!("No claim found for claim number: {claim_number}"))
+  let out = retreive_handler.get_claim(&claim_number)
+    .await
+    .map_err(|e| e.to_string())?
+    .claims.pop()
+    .ok_or(format!("No claim found for claim number: {claim_number}"));
+  dbg!(&out);
+  out
 }
 
 #[tokio::main]

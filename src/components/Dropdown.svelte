@@ -2,6 +2,7 @@
     //@ts-nocheck
     import { createEventDispatcher } from 'svelte';
     import { onMount } from 'svelte';
+    import { fly } from 'svelte/transition';
   
     let isOpen = false;
     let dropdownRef;
@@ -36,7 +37,7 @@
     </a>
   
     {#if isOpen}
-      <div class="dropdown-menu">
+    <div class="dropdown-menu" transition:fly={{x:-200}}>
         {#each items as item (item.id)}
           <div class="dropdown-item" on:click={() => handleItemClick(item)}>
             {item.label}
@@ -58,7 +59,6 @@
       left: 5px;
       top: 5px;
       background-color: var(--primary);
-      /* color: #0e2207; */
       color: var(--background-color);
       box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
       z-index: 99;
@@ -69,6 +69,7 @@
     .dropdown-item {
       padding: 12px 16px;
       cursor: pointer;
+      width: 200px;
     }
   
     .dropdown-item:hover {

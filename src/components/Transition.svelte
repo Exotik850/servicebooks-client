@@ -2,7 +2,7 @@
     import {fade, blur} from 'svelte/transition';
 
     export let animDur: number = 150;
-    export let trans = fade;
+    export let trans = blur;
 </script>
 
 <!-- {#key key} -->

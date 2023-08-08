@@ -1,6 +1,6 @@
 use quick_oxibooks::types::{Invoice, QBItem};
 use serde::{Deserialize, Serialize};
-use service_poxi::{ClaimUnion};
+use service_poxi::ClaimUnion;
 
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
