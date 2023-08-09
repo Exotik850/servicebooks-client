@@ -68,7 +68,9 @@
         "decorations": false,
         "width": 900,
         "focus": true,
-        "center": true
+        "center": true,
+        "transparent": true,
+        "visible": false
       }
     ]
   }

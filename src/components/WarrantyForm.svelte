@@ -47,7 +47,7 @@
 
     async function submitClaim() {
         try {
-            await invoiceSchema.validate(invoice, {abortEarly: false});
+            // await invoiceSchema.validate(invoice, {abortEarly: false});
             errors = {};
             await invoke("submit_claim", {claim: invoice})
             .then((customer) => {
@@ -163,6 +163,8 @@
 
 <style>
     .container {
+        position: absolute;
+        left: 0;
         margin-left: 25px;
     }
     .grid {
@@ -187,10 +189,14 @@
         margin: 10px auto;
         width: 95vw;
     }
+    .form-section input textarea {
+        pointer-events: all;
+    }
     .form-section textarea {
         resize: none;
     }
     h2 {
         text-align: center;
+        pointer-events: none;
     }
 </style>

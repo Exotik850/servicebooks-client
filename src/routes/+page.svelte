@@ -5,6 +5,8 @@
     import TitleBar from '../components/TitleBar.svelte'
     import WarrantyForm from '../components/WarrantyForm.svelte';
     import Transition from '../components/Transition.svelte';
+    import { onMount } from 'svelte';
+    import { invoke } from '@tauri-apps/api';
 
     
     enum State {
@@ -13,6 +15,10 @@
     }
 
     let state = State.CLAIM_FORM;
+
+    onMount(() => {
+        invoke("show_main")
+    });
 </script>
 
 <svelte:head>
@@ -21,12 +27,23 @@
 </svelte:head>
 
 <TitleBar bind:state={state}/>
-{#if state === State.CLAIM_FORM}
-<Transition>
-<WarrantyForm />
-</Transition>
-{:else if state === State.CLAIM_SEARCH}
-<Transition>
-<ClaimSearch/>
-</Transition>
-{/if}
+<!-- <div class="container"> -->
+<div class="container">
+    {#if state === State.CLAIM_FORM}
+        <Transition>
+            <WarrantyForm />
+        </Transition>
+    {:else if state === State.CLAIM_SEARCH}
+        <Transition>
+            <ClaimSearch/>
+        </Transition>
+    {/if}
+    </div>
+<!-- </div> -->
+
+<style>
+    .container {
+        margin: 0 auto;
+float: unset; height: 100%; width: 100%;
+    }
+</style>

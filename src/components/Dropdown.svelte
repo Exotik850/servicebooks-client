@@ -48,6 +48,10 @@
   </div>
   
   <style>
+    .dropdown-button {
+      color: antiquewhite;
+    }
+
     .dropdown {
       z-index: 1;
       width: 30px;
@@ -64,6 +68,8 @@
       z-index: 99;
       border-radius: 5px;
       overflow: hidden;
+      cursor: pointer;
+      pointer-events: all;
     }
 
     .dropdown-item {

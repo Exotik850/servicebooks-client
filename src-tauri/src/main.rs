@@ -6,8 +6,9 @@ use quick_oxibooks::actions::QBQuery;
 use quick_oxibooks::error::APIError;
 use quick_oxibooks::types::Customer;
 use quick_oxibooks::{client::Quickbooks, Authorized, Cache, Environment};
+use window_vibrancy::{apply_blur, apply_vibrancy, NSVisualEffectMaterial};
 use service_poxi::{ClaimHandler, Retreive, RetrievedClaim, Submit};
-use tauri::{generate_context, Manager, State, WindowEvent};
+use tauri::{generate_context, Manager, State, WindowEvent, AppHandle};
 
 struct QBState(Quickbooks<Authorized>);
 struct SPRetrieveState(ClaimHandler<Retreive>);
@@ -51,17 +52,35 @@ async fn get_claim(
     out
 }
 
+#[tauri::command]
+async fn show_main(app_handle: AppHandle) {
+    app_handle.get_window("main").unwrap().show().unwrap();
+}
+
 #[tokio::main]
 async fn main() {
-    let qb = Quickbooks::new_from_env("4620816365257778210", Environment::SANDBOX)
-        .await
-        .unwrap();
+    env_logger::init();
 
     tauri::Builder::default()
-        .manage(QBState(qb))
+        // .plugin(tauri_plugin_log::Builder::default().build())
+        .manage(QBState(
+            Quickbooks::new_from_env("4620816365257778210", Environment::SANDBOX)
+                .await
+                .unwrap(),
+        ))
         .manage(SPRetrieveState(ClaimHandler::<Retreive>::new()))
         .manage(SPSubmitState(ClaimHandler::<Submit>::new()))
-        .invoke_handler(tauri::generate_handler![submit_claim, get_claim])
+        .invoke_handler(tauri::generate_handler![submit_claim, get_claim, show_main])
+        .setup(|app| {
+            let window = app.get_window("main").unwrap();
+            #[cfg(target_os = "macos")]
+            apply_vibrancy(&window, NSVisualEffectMaterial::HudWindow, None, None)
+                .expect("Unsupported platform! 'apply_vibrancy' is only supported on macOS");
+            #[cfg(target_os = "windows")]
+            apply_blur(&window, Some((18, 18, 18, 125)))
+                .expect("Unsupported platform! 'apply_blur' is only supported on Windows");
+            Ok(())
+        })
         .on_window_event(|event| {
             let window = event.window();
             let state: State<QBState> = window.state();
