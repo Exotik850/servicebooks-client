@@ -2,13 +2,14 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod models;
+use models::RetreiveUnion;
 use quick_oxibooks::actions::QBQuery;
 use quick_oxibooks::error::APIError;
-use quick_oxibooks::types::Customer;
+use quick_oxibooks::types::{Customer, Invoice};
 use quick_oxibooks::{client::Quickbooks, Authorized, Cache, Environment};
-use window_vibrancy::{apply_blur, apply_vibrancy, NSVisualEffectMaterial};
 use service_poxi::{ClaimHandler, Retreive, RetrievedClaim, Submit};
-use tauri::{generate_context, Manager, State, WindowEvent, AppHandle};
+use tauri::{generate_context, AppHandle, Manager, State, WindowEvent};
+use window_vibrancy::{apply_blur, apply_vibrancy, NSVisualEffectMaterial};
 
 struct QBState(Quickbooks<Authorized>);
 struct SPRetrieveState(ClaimHandler<Retreive>);
@@ -36,20 +37,27 @@ async fn submit_claim(
 }
 
 #[tauri::command]
-async fn get_claim(
-    claim_number: String,
-    retreive_handler: State<'_, SPRetrieveState>,
-) -> Result<RetrievedClaim, String> {
-    let retreive_handler = &retreive_handler.0;
-    let out = retreive_handler
+async fn get_claim(claim_number: String, app_handle: AppHandle) -> Result<RetreiveUnion, String> {
+    let retreive_handler: State<'_, SPRetrieveState> = app_handle.state();
+    let qb: State<'_, QBState> = app_handle.state();
+
+    let service_claim = retreive_handler
+        .0
         .get_claim(&claim_number)
         .await
         .map_err(|e| e.to_string())?
         .claims
         .pop()
-        .ok_or(format!("No claim found for claim number: {claim_number}"));
-    dbg!(&out);
-    out
+        .ok_or(format!("No claim found for claim number: {claim_number}"))?;
+
+    let invoice = Invoice::query_single(&qb.0, &format!("where DocNumber = '{claim_number}'"))
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(RetreiveUnion {
+        invoice,
+        service_claim,
+    })
 }
 
 #[tauri::command]
@@ -64,7 +72,8 @@ async fn main() {
     tauri::Builder::default()
         // .plugin(tauri_plugin_log::Builder::default().build())
         .manage(QBState(
-            Quickbooks::new_from_env("4620816365257778210", Environment::SANDBOX)
+            // Quickbooks::new_from_env("4620816365257778210", Environment::SANDBOX)
+            Quickbooks::new_from_env("9130347246064456", Environment::PRODUCTION)
                 .await
                 .unwrap(),
         ))

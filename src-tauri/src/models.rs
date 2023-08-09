@@ -1,6 +1,6 @@
 use quick_oxibooks::types::{Invoice, QBItem};
 use serde::{Deserialize, Serialize};
-use service_poxi::ClaimUnion;
+use service_poxi::{ClaimUnion, RetrievedClaim};
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct HAInvoice {
@@ -32,4 +32,10 @@ impl QBItem for HAInvoice {
     fn qb_id() -> &'static str {
         Invoice::qb_id()
     }
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+pub struct RetreiveUnion {
+    pub invoice: Invoice,
+    pub service_claim: RetrievedClaim,
 }

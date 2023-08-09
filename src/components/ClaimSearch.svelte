@@ -21,6 +21,22 @@
             error = err;
         })
     }
+
+    function displayObject(obj) {
+    if (obj && typeof obj === 'object') {
+      return Object.entries(obj).map(([key, value]) => {
+        if (typeof value === 'object') {
+          return `<div class="nested">
+            <p><strong>${key}:</strong></p>
+            ${displayObject(value)}  
+          </div>`;
+        } else {
+          return `<p><strong>${key}:</strong> ${value}</p>`;
+        }
+      }).join(''); 
+    }
+  }
+
 </script>
 
 <h2>Claim Search</h2>
@@ -45,9 +61,7 @@
 <div class="claim">
     <Transition>  
         <article>  
-            {#each Object.entries(claim) as [key, value]}
-                <p><strong>{key}:</strong> {value}</p>
-            {/each}
+            {@html displayObject(claim)}
         </article>
     </Transition>
 </div>
