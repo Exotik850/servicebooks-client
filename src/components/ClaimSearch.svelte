@@ -1,70 +1,95 @@
 <script lang="ts">
     //@ts-nocheck
 
-    import { invoke } from '@tauri-apps/api';
-    import Transition from './Transition.svelte';
+    import { invoke } from "@tauri-apps/api";
+    import Transition from "./Transition.svelte";
 
-    let claimNumber = '';
+    let claimNumber = "";
     let claim = null;
     let error = null;
+    let getQb = false;
+    let getSb = false;
 
     async function getClaim() {
         error = "";
-        if (claimNumber == '') {
+        if (claimNumber == "") {
             claim = null;
-            return
+            return;
         }
-        await invoke("get_claim", {claimNumber: claimNumber})
-        .then((respo) => {claim = respo;})
-        .catch((err) => {
-            console.error(err);
-            error = err;
+        await invoke("get_claim", {
+            claimNumber: claimNumber,
+            getQb: getQb,
+            getSb: getSb,
         })
+            .then((respo) => {
+                claim = respo;
+            })
+            .catch((err) => {
+                console.error(err);
+                error = err;
+            });
     }
 
     function displayObject(obj) {
-    if (obj && typeof obj === 'object') {
-      return Object.entries(obj).map(([key, value]) => {
-        if (typeof value === 'object') {
-          return `<div class="nested">
+        if (obj && typeof obj === "object") {
+            return Object.entries(obj)
+                .map(([key, value]) => {
+                    if (typeof value === "object") {
+                        return `<div class="nested">
             <p><strong>${key}:</strong></p>
             ${displayObject(value)}  
           </div>`;
-        } else {
-          return `<p><strong>${key}:</strong> ${value}</p>`;
+                    } else {
+                        return `<p><strong>${key}:</strong> ${value}</p>`;
+                    }
+                })
+                .join("");
         }
-      }).join(''); 
     }
-  }
-
 </script>
 
 <h2>Claim Search</h2>
 <article>
     <form>
-        <label>Claim Number: <input type="search" bind:value={claimNumber}/></label>
+        <label
+            >Claim Number: <input
+                type="search"
+                bind:value={claimNumber}
+            /></label
+        >
+        Get from:
+        <fieldset>
+            <label for="quickbooks">
+                Quickbooks
+                <input type="checkbox" id="quickbooks" on:change={() => (getQb = !getQb)} />
+            </label>
+            <label for="servicebooks">
+                ServiceBooks
+                <input type="checkbox" id="servicebooks" on:change={() => (getSb = !getSb)} />
+            </label>
+        </fieldset>
         <button type="submit" on:click|preventDefault={getClaim}>Search</button>
     </form>
 </article>
 
 {#if error}
-<div class="error">
-    <Transition>  
-    <article>
-        <p>{error}</p>
-    </article>
-</Transition>
-</div>
+    <div class="error">
+        <Transition>
+            <article>
+                <p>{error}</p>
+            </article>
+        </Transition>
+    </div>
 {/if}
 
 {#if claim}
-<div class="claim">
-    <Transition>  
-        <article>  
-            {@html displayObject(claim)}
-        </article>
-    </Transition>
-</div>
+    <div class="claim">
+        <Transition>
+            <article>
+                {@html displayObject(claim)}
+            </article>
+        </Transition>
+    </div>
 {/if}
 
 <style>
@@ -84,7 +109,8 @@
         text-align: center;
         margin: 0 auto;
     }
-    .claim {
-
+    fieldset {
+        display: flex;
+        justify-content: space-evenly;
     }
 </style>

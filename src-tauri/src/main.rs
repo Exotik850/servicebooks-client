@@ -2,14 +2,19 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod models;
-use models::RetreiveUnion;
+use models::HAInvoice;
 use quick_oxibooks::actions::QBQuery;
 use quick_oxibooks::error::APIError;
 use quick_oxibooks::types::{Customer, Invoice};
-use quick_oxibooks::{client::Quickbooks, Authorized, Cache, Environment};
-use service_poxi::{ClaimHandler, Retreive, RetrievedClaim, Submit};
+use quick_oxibooks::{client::Quickbooks, Authorized, Environment};
+use service_poxi::{ClaimHandler, Retreive, Submit};
 use tauri::{generate_context, AppHandle, Manager, State, WindowEvent};
-use window_vibrancy::{apply_blur, apply_vibrancy, NSVisualEffectMaterial};
+
+#[cfg(target_os="windows")]
+use window_vibrancy::apply_blur;
+
+#[cfg(target_os="macos")]
+use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
 
 struct QBState(Quickbooks<Authorized>);
 struct SPRetrieveState(ClaimHandler<Retreive>);
@@ -37,26 +42,42 @@ async fn submit_claim(
 }
 
 #[tauri::command]
-async fn get_claim(claim_number: String, app_handle: AppHandle) -> Result<RetreiveUnion, String> {
+async fn get_claim(
+    claim_number: String,
+    get_qb: bool,
+    get_sb: bool,
+    app_handle: AppHandle,
+) -> Result<HAInvoice, String> {
     let retreive_handler: State<'_, SPRetrieveState> = app_handle.state();
     let qb: State<'_, QBState> = app_handle.state();
 
-    let service_claim = retreive_handler
-        .0
-        .get_claim(&claim_number)
-        .await
-        .map_err(|e| e.to_string())?
-        .claims
-        .pop()
-        .ok_or(format!("No claim found for claim number: {claim_number}"))?;
+    let sb_claim = match get_sb {
+        true => Some(
+            retreive_handler
+                .0
+                .get_claim(&claim_number)
+                .await
+                .map_err(|e| e.to_string())?
+                .claims
+                .pop()
+                .ok_or(format!("No claim found for claim number: {claim_number}"))?
+                .into(),
+        ),
+        false => None,
+    };
 
-    let invoice = Invoice::query_single(&qb.0, &format!("where DocNumber = '{claim_number}'"))
-        .await
-        .map_err(|e| e.to_string())?;
+    let qb_invoice = match get_qb {
+        true => Some(
+            Invoice::query_single(&qb.0, &format!("where DocNumber = '{claim_number}'"))
+                .await
+                .map_err(|e| e.to_string())?,
+        ),
+        false => None,
+    };
 
-    Ok(RetreiveUnion {
-        invoice,
-        service_claim,
+    Ok(HAInvoice {
+        qb_invoice,
+        sb_claim,
     })
 }
 

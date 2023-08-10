@@ -1,5 +1,5 @@
 <script>
-// @ts-nocheck
+    // @ts-nocheck
 
     export let prev;
     export let next;
@@ -8,14 +8,21 @@
 </script>
 
 <div class="form-navigation">
-    <button class="nav" on:click|preventDefault={prev} disabled={step === 0}><i class="material-icons">arrow_back</i></button>
-    <button class="nav" on:click|preventDefault={next} disabled={step === maxStep}><i class="material-icons">arrow_forward</i></button>
+    <button class="nav" on:click|preventDefault={prev} disabled={step === 0}
+        ><i class="material-icons">arrow_back</i></button
+    >
+    <button
+        class="nav"
+        on:click|preventDefault={next}
+        disabled={step === maxStep}
+        ><i class="material-icons">arrow_forward</i></button
+    >
 </div>
 
 <style>
     .form-navigation {
         display: flex;
-        position:fixed;
+        position: fixed;
         gap: 20px;
         bottom: 10px;
         margin: 0 auto;
@@ -26,7 +33,7 @@
     .nav {
         background: none;
         font-size: 2rem;
-        color:white;
+        color: white;
         opacity: 0.5;
         transition: 0.3s ease;
         width: 40px;
