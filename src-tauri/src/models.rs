@@ -80,15 +80,14 @@ pub(crate) fn default_invoice(customer_ref: NtRef, items: &[NtRef]) -> Invoice {
     let sales_term_ref = ("Net 15", "22").into();
 
     let txn_tax_detail = TxnTaxDetail {
-        tax_line: Some(vec![
-                    LineBuilder::default().line_detail(Some(LineDetail::TaxLineDetail(TaxLineDetail {
-                        percent_based: true,
-                        tax_percent: 9.75,
-                        ..Default::default()
-                    })))
-                    .build()
-                    .unwrap(),
-                ]),
+        tax_line: Some(vec![LineBuilder::default()
+            .line_detail(Some(LineDetail::TaxLineDetail(TaxLineDetail {
+                percent_based: true,
+                tax_percent: 9.75,
+                ..Default::default()
+            })))
+            .build()
+            .unwrap()]),
         txn_tax_code_ref: Some("35".into()),
         total_tax: Some(0.0),
     };

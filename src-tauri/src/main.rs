@@ -3,14 +3,14 @@
 
 mod models;
 use models::*;
-use quick_oxibooks::actions::QBQuery;
+use quick_oxibooks::actions::{QBQuery, QBCreate};
 use quick_oxibooks::error::APIError;
 use quick_oxibooks::types::{Customer, Invoice};
 use quick_oxibooks::{client::Quickbooks, Authorized, Environment};
 use service_poxi::{ClaimHandler, Retreive, Submit};
 use tauri::{generate_context, AppHandle, Manager, State, WindowEvent};
 
-#[cfg(any(windows, target_os="macos"))]
+#[cfg(any(windows, target_os = "macos"))]
 use window_shadows::set_shadow;
 
 struct QBState(Quickbooks<Authorized>);
@@ -25,19 +25,18 @@ macro_rules! get_str {
 }
 
 #[tauri::command]
-async fn submit_claim(
-    claim: serde_json::Value,
-    qb: State<'_, QBState>,
-) -> Result<(), APIError> {
+async fn submit_claim(claim: serde_json::Value, qb: State<'_, QBState>) -> Result<(), APIError> {
     let first_name = get_str!(claim, "customer_first_name");
     let last_name = get_str!(claim, "customer_last_name");
     println!("{first_name} {last_name}");
-    let st = format!("where GivenName = '{first_name}' and FamilyName = '{last_name}' or DisplayName = '{first_name} {last_name}'");
+    let st = format!("where DisplayName = '{first_name} {last_name}'");
     let cust = Customer::query_single(&qb.0, &st).await?;
-    
+
     let inv = default_invoice(cust.into(), &[]);
 
     println!("{inv}");
+
+    inv.create(&qb.0).await?;
 
     Ok(())
 }
@@ -49,8 +48,8 @@ async fn get_claim(
     get_sb: bool,
     app_handle: AppHandle,
 ) -> Result<HAInvoice, String> {
-    let retreive_handler: State<'_, SPRetrieveState> = app_handle.state();
-    let qb: State<'_, QBState> = app_handle.state();
+    let retreive_handler: State<SPRetrieveState> = app_handle.state();
+    let qb: State<QBState> = app_handle.state();
 
     let sb_claim = match get_sb {
         true => Some(
@@ -76,9 +75,10 @@ async fn get_claim(
         false => None,
     };
 
-    if qb_invoice.is_some() {
-        println!("{}", qb_invoice.as_ref().unwrap());
-    }
+    qb_invoice.as_ref().is_some_and(|inv| {
+        println!("{inv}");
+        true
+    });
 
     Ok(HAInvoice {
         qb_invoice,
