@@ -31,13 +31,12 @@
                     >Invoice Number: <input
                         bind:value={part.invoice_number}
                         type="number"
-                        min="0"
+                        required
                     /></label
                 >
                 <label
                     >Distributor:
                     <select bind:value={part.distributor_number}>
-                        <!-- TODO: ADD DISTRIBUTOR NUMBERS -->
                         <option value="0000100675">Marcone</option>
                         <option value="0000100777">Reliable Parts</option>
                         <option value="000114927">Encompass</option>
@@ -72,7 +71,6 @@
         color: rgb(219, 219, 219);
         border: rgb(78, 13, 13);
         padding: 0;
-        /* font-size: 1rem; */
         margin-top: auto;
         margin-bottom: auto;
         left: 10px;

@@ -63,9 +63,9 @@
                 Quickbooks
                 <input type="checkbox" id="quickbooks" on:change={() => (getQb = !getQb)} />
             </label>
-            <label for="servicebooks">
-                ServiceBooks
-                <input type="checkbox" id="servicebooks" on:change={() => (getSb = !getSb)} />
+            <label for="servicepower">
+                Servicepower
+                <input type="checkbox" id="servicepower" on:change={() => (getSb = !getSb)} />
             </label>
         </fieldset>
         <button type="submit" on:click|preventDefault={getClaim}>Search</button>

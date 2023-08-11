@@ -32,6 +32,9 @@
 </script>
 
 <div class="dropdown" bind:this={dropdownRef}>
+  <!-- svelte-ignore a11y-missing-attribute -->
+  <!-- svelte-ignore a11y-click-events-have-key-events -->
+  <!-- svelte-ignore a11y-no-static-element-interactions -->
   <a on:click={() => (isOpen = !isOpen)} class="dropdown-button">
     <i class="material-icons">menu</i>
   </a>
@@ -39,6 +42,8 @@
   {#if isOpen}
     <div class="dropdown-menu" transition:fly={{ x: -200 }}>
       {#each items as item (item.id)}
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <!-- svelte-ignore a11y-click-events-have-key-events -->
         <div class="dropdown-item" on:click={() => handleItemClick(item)}>
           {item.label}
         </div>
