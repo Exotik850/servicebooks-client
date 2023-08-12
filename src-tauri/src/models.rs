@@ -61,6 +61,7 @@ pub(crate) fn default_invoice(customer_ref: NtRef, items: &[NtRef]) -> Invoice {
                 .unwrap(),
             )))
         .description(Some("All Speed Queen warranty call information - should never have a balance. *See Tammy for details. ALWAYS change tax for Shelby county/ MS".into()))
+        .amount(Some(0.0))
         .build()
         .unwrap()], |mut acc, next| {
             acc.push(LineBuilder::default()
@@ -72,6 +73,7 @@ pub(crate) fn default_invoice(customer_ref: NtRef, items: &[NtRef]) -> Invoice {
                     .build()
                     .unwrap(),
                 )))
+            .amount(Some(0.0))
             .build()
             .unwrap());
             acc

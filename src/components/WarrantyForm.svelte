@@ -50,7 +50,7 @@
         parts: [],
     };
 
-    let errors = {};
+    let errors = null;
 
     async function submitClaim() {
         try {
@@ -62,9 +62,13 @@
                 }
             );
         } catch (error) {
-            errors = error.inner.reduce((acc, err) => {
-                return { ...acc, [err.path]: err.message };
-            }, {});
+            if (typeof error === "object") {
+                errors = error.inner.reduce((acc, err) => {
+                    return { ...acc, [err.path]: err.message };
+                }, {});
+            } else {
+                errors = error;
+            }
         }
     }
 
@@ -246,49 +250,81 @@
                             <option value="11">Defective Door Boot</option>
                             <option value="12">Defective Door Lock</option>
                             <option value="13">Defective FEC</option>
-                            <option value="14">Defective Front End Control</option>
+                            <option value="14"
+                                >Defective Front End Control</option
+                            >
                             <option value="15">Defective Glide</option>
                             <option value="16">Defective Harness</option>
                             <option value="17">Defective Hose</option>
                             <option value="18">Defective Invertor Board</option>
-                            <option value="19">Defective Lid Lock / Catch</option>
+                            <option value="19"
+                                >Defective Lid Lock / Catch</option
+                            >
                             <option value="20">Defective Motor Switch</option>
                             <option value="21">Defective Output Board</option>
-                            <option value="22">Defective Output Board / FEC</option>
-                            <option value="23">Defective Output Board / FEC / Timer</option>
-                            <option value="24">Defective Power Chord / Harness</option>
-                            <option value="25">Defective Pressure Sensor</option>
-                            <option value="26">Defective Pressure Sensor / Harness</option>
+                            <option value="22"
+                                >Defective Output Board / FEC</option
+                            >
+                            <option value="23"
+                                >Defective Output Board / FEC / Timer</option
+                            >
+                            <option value="24"
+                                >Defective Power Chord / Harness</option
+                            >
+                            <option value="25">Defective Pressure Sensor</option
+                            >
+                            <option value="26"
+                                >Defective Pressure Sensor / Harness</option
+                            >
                             <option value="27">Defective Pump</option>
                             <option value="28">Defective Roller / Shaft</option>
-                            <option value="29">Defective Thermostat / Thermistor</option>
+                            <option value="29"
+                                >Defective Thermostat / Thermistor</option
+                            >
                             <option value="3">Defective Balance Ring</option>
                             <option value="30">Defective Washtub</option>
                             <option value="31">Defective Water Valve</option>
-                            <option value="32">Defective / Broken Agitator</option>
-                            <option value="33">Defective / Broken Clothes Gaurd</option>
-                            <option value="34">Defective / Stretched / Worn Belt</option>
+                            <option value="32"
+                                >Defective / Broken Agitator</option
+                            >
+                            <option value="33"
+                                >Defective / Broken Clothes Gaurd</option
+                            >
+                            <option value="34"
+                                >Defective / Stretched / Worn Belt</option
+                            >
                             <option value="35">GFCI / Breaker</option>
                             <option value="36">High Heat Concern</option>
                             <option value="37">Install Related</option>
-                            <option value="38">Lid Alignment / Adjustment</option>
+                            <option value="38"
+                                >Lid Alignment / Adjustment</option
+                            >
                             <option value="39">Loose Bolt / Screw</option>
                             <option value="4">Defective Seal</option>
-                            <option value="40">No Advance / Faulty Motor</option>
+                            <option value="40">No Advance / Faulty Motor</option
+                            >
                             <option value="41">Noisy Bearing</option>
                             <option value="42">Noisy Motor</option>
                             <option value="43">Noisy Operation</option>
                             <option value="44">Noisy Door Boot</option>
                             <option value="45">Open Contact</option>
                             <option value="46">Open Element</option>
-                            <option value="47">Open Ignitor / Gas Valve Coil</option>
-                            <option value="48">Open Thermal Fuse / Thermostat / Thermistor</option>
+                            <option value="47"
+                                >Open Ignitor / Gas Valve Coil</option
+                            >
+                            <option value="48"
+                                >Open Thermal Fuse / Thermostat / Thermistor</option
+                            >
                             <option value="5">Defective Air Dome/Tubing</option>
-                            <option value="50">Poor Door Alignment / Hinge</option>
+                            <option value="50"
+                                >Poor Door Alignment / Hinge</option
+                            >
                             <option value="51">Roller / Shaft Issue</option>
                             <option value="52">Shorted Element</option>
                             <option value="53">Stuck Relay</option>
-                            <option value="54">Timer / Control Board / Switch Defective</option>
+                            <option value="54"
+                                >Timer / Control Board / Switch Defective</option
+                            >
                             <option value="6">Defective Bearing</option>
                             <option value="7">Defective Belt</option>
                             <option value="8">Defective Belt Idler</option>
@@ -311,7 +347,7 @@
                         bind:value={invoice.service_performed}
                     /></label
                 >
-                <br/>
+                <br />
             </div>
         </Transition>
     {:else if step === 3}
@@ -320,13 +356,19 @@
                 <h2>Parts Used</h2>
                 <Parts {invoice} />
             </div>
-            {#if JSON.stringify(errors) != "{}"}
+            {#if errors != null}
+                {#if typeof errors === "object"}
                 {#each Object.entries(errors) as [key, error]}
                     <div color="danger">
                         <h4>{key}</h4>
                         <p>{error}</p>
                     </div>
                 {/each}
+                {:else}
+                <div color="danger">
+                    <p>{errors}</p>
+                </div>
+                {/if}
             {/if}
             <div class="form-section">
                 <button
