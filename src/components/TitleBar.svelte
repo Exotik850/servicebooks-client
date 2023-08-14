@@ -35,7 +35,7 @@
 </script>
 
 <div data-tauri-drag-region class="titlebar">
-  <h5 class="title">ServiceBooks</h5>
+  <h5 data-tauri-drag-region class="title">ServiceBooks</h5>
   <div class="titlebar-button menu">
     <Dropdown {items} on:select={handleSelect} />
   </div>
@@ -80,11 +80,12 @@
     user-select: none;
     display: flex;
     justify-content: flex-end;
-    position: sticky;
+    position: fixed;
     background-color: none;
     /* background-color: var(--primary-focus); */
     top: 0;
     left: 0;
+    height: 30px;
     right: 0;
     user-select: none;
     border-radius: 10px;
