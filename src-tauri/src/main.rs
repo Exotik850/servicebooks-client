@@ -32,7 +32,7 @@ async fn submit_claim(claim: serde_json::Value, qb: State<'_, QBState>) -> Resul
     let st = format!("where DisplayName = '{first_name} {last_name}'");
     let cust = Customer::query_single(&qb.0, &st).await?;
 
-    let inv = default_invoice(cust.into(), &[]);
+    let inv = default_qb_invoice(cust.into(), &[]);
 
     println!("{inv}");
 

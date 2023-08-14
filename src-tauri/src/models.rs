@@ -4,7 +4,7 @@ use quick_oxibooks::types::{
     TaxLineDetail,
 };
 use serde::{Deserialize, Serialize};
-use service_poxi::ClaimUnion;
+use service_poxi::{ClaimUnion, Claim, ClaimBuilder, ClaimBuilderError};
 
 pub const HA_MANUFACTURER: &'static str = "ALLIANCE - SPEED QUEEN";
 pub const HA_MODEL_BRAND: &'static str = "SPEED QUEEN";
@@ -43,7 +43,7 @@ impl QBItem for HAInvoice {
     }
 }
 
-pub(crate) fn default_invoice(customer_ref: NtRef, items: &[NtRef]) -> Invoice {
+pub(crate) fn default_qb_invoice(customer_ref: NtRef, items: &[NtRef]) -> Invoice {
     let custom_field = vec![CustomField {
         definition_id: Some("2".into()),
         string_value: Some("SQ".into()),
@@ -113,4 +113,13 @@ pub(crate) fn default_invoice(customer_ref: NtRef, items: &[NtRef]) -> Invoice {
         }))
         .build()
         .unwrap()
+}
+
+pub(crate) fn default_sb_claim(claim_number: String) -> Result<Claim, ClaimBuilderError> {
+    ClaimBuilder::default()
+    .distributor_number("4386") // TODO Check if this right idk
+    .brand_name(HA_MODEL_BRAND)
+    .manufacturer_name(HA_MANUFACTURER)
+    .claim_number(claim_number)
+    .build()
 }
