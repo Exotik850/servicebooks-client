@@ -1,11 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod models;
 mod blocking;
+mod models;
 use blocking::Block;
 use models::*;
-use quick_oxibooks::actions::{QBQuery, QBCreate};
+use quick_oxibooks::actions::{QBCreate, QBQuery};
 use quick_oxibooks::error::APIError;
 use quick_oxibooks::types::{Customer, Invoice};
 use quick_oxibooks::{client::Quickbooks, Authorized, Environment};
@@ -28,17 +28,21 @@ macro_rules! get_str {
 
 #[tauri::command]
 async fn submit_claim(claim: serde_json::Value, qb: State<'_, QBState>) -> Result<(), APIError> {
-    let first_name = get_str!(claim, "customer_first_name");
-    let last_name = get_str!(claim, "customer_last_name");
-    println!("{first_name} {last_name}");
-    let st = format!("where DisplayName = '{first_name} {last_name}'");
-    let cust = Customer::query_single(&qb.0, &st).await?;
+    // let first_name = get_str!(claim, "customer_first_name");
+    // let last_name = get_str!(claim, "customer_last_name");
+    // println!("{first_name} {last_name}");
+    // let st = format!("where DisplayName = '{first_name} {last_name}'");
+    // let cust = Customer::query_single(&qb.0, &st).await?;
 
-    let inv = default_qb_invoice(cust.into(), &[]);
+    // let inv = default_qb_invoice(cust.into(), &[]);
 
-    println!("{inv}");
+    // println!("Before: {inv}");
 
-    inv.create(&qb.0).await?;
+    // let inv = inv.create(&qb.0).await?;
+
+    // println!("After: {inv}");
+    let next = models::generate_claim_number(&qb.0).await?;
+    dbg!(next);
 
     Ok(())
 }

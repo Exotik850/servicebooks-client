@@ -1,10 +1,13 @@
-use quick_oxibooks::types::{
+use quick_oxibooks::{types::{
     common::{CustomField, NtRef, TxnTaxDetail},
     Invoice, InvoiceBuilder, LineBuilder, LineDetail, QBItem, SalesItemLineDetailBuilder,
     TaxLineDetail,
-};
+}, client::Quickbooks, Authorized, actions::QBQuery, error::APIError};
 use serde::{Deserialize, Serialize};
-use service_poxi::{ClaimUnion, Claim, ClaimBuilder, ClaimBuilderError};
+use service_poxi::{Claim, ClaimBuilder, ClaimBuilderError, ClaimUnion};
+use tokio::io::{AsyncWriteExt, AsyncReadExt};
+
+
 
 pub const HA_MANUFACTURER: &'static str = "ALLIANCE - SPEED QUEEN";
 pub const HA_MODEL_BRAND: &'static str = "SPEED QUEEN";
@@ -101,12 +104,7 @@ pub(crate) fn default_qb_invoice(customer_ref: NtRef, items: &[NtRef]) -> Invoic
         .line(Some(line))
         .customer_memo(Some(NtRef {
             value: Some(
-            "Warranty Claim Filed date w/Service Power: 8/xx/23
-            Claim # CLAIM_PLACEHOLDER
-            Claim paid 8/xx/23 $XXX ()
-            Voucher # VOUCHER_PLACEHOLDER
-            Parts paid via Marcone ($xx.xx)
-            Invoice # PART_INVOICE_PLACEHOLDER dated 8/xx/23"
+            "Warranty Claim Filed date w/Service Power: 8/xx/23\nClaim # CLAIM_PLACEHOLDER\nClaim paid 8/xx/23 $XXX ()\nVoucher # VOUCHER_PLACEHOLDER\nParts paid via Marcone ($xx.xx)\nInvoice # PART_INVOICE_PLACEHOLDER dated 8/xx/23"
                     .into(),
             ),
             ..Default::default()
@@ -117,9 +115,31 @@ pub(crate) fn default_qb_invoice(customer_ref: NtRef, items: &[NtRef]) -> Invoic
 
 pub(crate) fn default_sb_claim(claim_number: String) -> Result<Claim, ClaimBuilderError> {
     ClaimBuilder::default()
-    .distributor_number("4386") // TODO Check if this right idk
-    .brand_name(HA_MODEL_BRAND)
-    .manufacturer_name(HA_MANUFACTURER)
-    .claim_number(claim_number)
-    .build()
+        .distributor_number("4683")
+        .brand_name(HA_MODEL_BRAND)
+        .manufacturer_name(HA_MANUFACTURER)
+        .claim_number(claim_number)
+        .build()
+}
+
+pub(crate) async fn generate_claim_number(qb: &Quickbooks<Authorized>) -> Result<String, APIError> {
+    // let mut file = tokio::fs::OpenOptions::new()
+    //     .read(true)
+    //     .write(true)
+    //     .append(false)
+    //     .create(false)
+    //     .open("../current.dat")
+    //     .await?;
+    // let mut current = String::new();
+    // file.read_to_string(&mut current).await?;
+
+    // let current_num = current.parse::<u64>().expect("Couldn't parse current invoice number file") + 1;
+    // let current = format!("{current}W");
+
+    // file.write(&current_num.to_string().as_bytes()).await?;
+
+    // Ok(current)
+
+    let inv = Invoice::query_single(qb, "where DocNumber like '%W' orderby MetaData.CreateTime desc").await?;
+    Ok(inv.doc_number.unwrap())
 }
