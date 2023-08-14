@@ -101,11 +101,11 @@ pub(crate) fn default_qb_invoice(customer_ref: NtRef, items: &[NtRef]) -> Invoic
         .line(Some(line))
         .customer_memo(Some(NtRef {
             value: Some(
-                "Warranty Claim Filed date w/Service Power: 8/xx/23\n
-            Claim # CLAIM_PLACEHOLDER\n
-            Claim paid 8/xx/23 $XXX ()\n
-            Voucher # VOUCHER_PLACEHOLDER\n
-            Parts paid via Marcone ($xx.xx)\n
+            "Warranty Claim Filed date w/Service Power: 8/xx/23
+            Claim # CLAIM_PLACEHOLDER
+            Claim paid 8/xx/23 $XXX ()
+            Voucher # VOUCHER_PLACEHOLDER
+            Parts paid via Marcone ($xx.xx)
             Invoice # PART_INVOICE_PLACEHOLDER dated 8/xx/23"
                     .into(),
             ),

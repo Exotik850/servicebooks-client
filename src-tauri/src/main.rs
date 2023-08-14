@@ -2,6 +2,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod models;
+mod blocking;
+use blocking::Block;
 use models::*;
 use quick_oxibooks::actions::{QBQuery, QBCreate};
 use quick_oxibooks::error::APIError;
@@ -118,11 +120,11 @@ async fn main() {
             match event.event() {
                 WindowEvent::CloseRequested { api, .. } => {
                     api.prevent_close();
-                    state.0.cleanup();
+                    state.0.cleanup().wait();
                     window.close().unwrap();
                 }
                 WindowEvent::Destroyed => {
-                    state.0.cleanup();
+                    state.0.cleanup().wait();
                 }
                 _ => (),
             }
