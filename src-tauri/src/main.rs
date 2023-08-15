@@ -3,14 +3,18 @@
 
 mod blocking;
 mod models;
+mod util;
 use blocking::Block;
 use models::*;
-use quick_oxibooks::actions::{QBCreate, QBQuery};
-use quick_oxibooks::error::APIError;
-use quick_oxibooks::types::{Customer, Invoice};
-use quick_oxibooks::{client::Quickbooks, Authorized, Environment};
+use quick_oxibooks::{
+    actions::{QBCreate, QBQuery},
+    error::APIError,
+    types::{Customer, Invoice},
+    {client::Quickbooks, Authorized, Environment},
+};
 use service_poxi::{ClaimHandler, Retreive, Submit};
 use tauri::{generate_context, AppHandle, Manager, State, WindowEvent};
+use util::*;
 
 #[cfg(any(windows, target_os = "macos"))]
 use window_shadows::set_shadow;
@@ -28,17 +32,14 @@ macro_rules! get_str {
 
 #[tauri::command]
 async fn submit_claim(claim: serde_json::Value, qb: State<'_, QBState>) -> Result<(), APIError> {
-    let first_name = get_str!(claim, "customer_first_name");
-    let last_name = get_str!(claim, "customer_last_name");
+    let input_invoice: InputInvoice = claim.try_into()?;
     println!("{first_name} {last_name}");
     let st = format!("where DisplayName = '{first_name} {last_name}'");
     let cust = Customer::query_single(&qb.0, &st).await?;
 
-    
     // println!("Before: {inv}");
-    
-    
-    let next = models::generate_claim_number(&qb.0).await?;
+
+    let next = generate_claim_number(&qb.0).await?;
     let inv = default_qb_invoice(cust.into(), &[], next);
     let inv = inv.create(&qb.0).await?;
     println!("After: {inv}");
@@ -104,7 +105,7 @@ async fn main() {
     tauri::Builder::default()
         .manage(QBState(
             // Quickbooks::new_from_env("4620816365257778210", Environment::SANDBOX)
-            Quickbooks::new_from_env("9130347246064456", Environment::PRODUCTION)
+            Quickbooks::new_from_env("9130347246064456", Environment::PRODUCTION, "peepeepoopoo")
                 .await
                 .unwrap(),
         ))
