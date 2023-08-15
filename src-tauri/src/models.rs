@@ -46,7 +46,7 @@ impl QBItem for HAInvoice {
     }
 }
 
-pub(crate) fn default_qb_invoice(customer_ref: NtRef, items: &[NtRef]) -> Invoice {
+pub(crate) fn default_qb_invoice(customer_ref: NtRef, items: &[NtRef], doc_number: String) -> Invoice {
     let custom_field = vec![CustomField {
         definition_id: Some("2".into()),
         string_value: Some("SQ".into()),
@@ -102,6 +102,7 @@ pub(crate) fn default_qb_invoice(customer_ref: NtRef, items: &[NtRef]) -> Invoic
         .customer_ref(Some(customer_ref))
         .sales_term_ref(Some(sales_term_ref))
         .line(Some(line))
+        .doc_number(Some(doc_number))
         .customer_memo(Some(NtRef {
             value: Some(
             "Warranty Claim Filed date w/Service Power: 8/xx/23\nClaim # CLAIM_PLACEHOLDER\nClaim paid 8/xx/23 $XXX ()\nVoucher # VOUCHER_PLACEHOLDER\nParts paid via Marcone ($xx.xx)\nInvoice # PART_INVOICE_PLACEHOLDER dated 8/xx/23"
@@ -141,5 +142,12 @@ pub(crate) async fn generate_claim_number(qb: &Quickbooks<Authorized>) -> Result
     // Ok(current)
 
     let inv = Invoice::query_single(qb, "where DocNumber like '%W' orderby MetaData.CreateTime desc").await?;
-    Ok(inv.doc_number.unwrap())
+
+    let num = inv.doc_number.unwrap();
+    let index = num.chars().position(|w| w == 'W').expect("No W in retrieved DocNumber");
+
+    let num = num[0..index].parse::<u64>().expect("Couldn't Parse DocNumber") + 1;
+    let num = format!("{}W", num);
+
+    Ok(num)
 }

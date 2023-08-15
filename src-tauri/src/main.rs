@@ -28,21 +28,21 @@ macro_rules! get_str {
 
 #[tauri::command]
 async fn submit_claim(claim: serde_json::Value, qb: State<'_, QBState>) -> Result<(), APIError> {
-    // let first_name = get_str!(claim, "customer_first_name");
-    // let last_name = get_str!(claim, "customer_last_name");
-    // println!("{first_name} {last_name}");
-    // let st = format!("where DisplayName = '{first_name} {last_name}'");
-    // let cust = Customer::query_single(&qb.0, &st).await?;
+    let first_name = get_str!(claim, "customer_first_name");
+    let last_name = get_str!(claim, "customer_last_name");
+    println!("{first_name} {last_name}");
+    let st = format!("where DisplayName = '{first_name} {last_name}'");
+    let cust = Customer::query_single(&qb.0, &st).await?;
 
-    // let inv = default_qb_invoice(cust.into(), &[]);
-
+    
     // println!("Before: {inv}");
-
-    // let inv = inv.create(&qb.0).await?;
-
-    // println!("After: {inv}");
+    
+    
     let next = models::generate_claim_number(&qb.0).await?;
-    dbg!(next);
+    let inv = default_qb_invoice(cust.into(), &[], next);
+    let inv = inv.create(&qb.0).await?;
+    println!("After: {inv}");
+    // dbg!(next);
 
     Ok(())
 }
