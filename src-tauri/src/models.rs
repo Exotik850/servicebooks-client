@@ -1,51 +1,42 @@
-use quick_oxibooks::{
-    actions::QBQuery,
-    client::Quickbooks,
-    error::APIError,
-    types::{
-        common::{CustomField, NtRef, TxnTaxDetail},
-        Invoice, InvoiceBuilder, LineBuilder, LineDetail, QBItem, SalesItemLineDetailBuilder,
-        TaxLineDetail,
-    },
-    Authorized,
+use quick_oxibooks::types::{
+    Invoice, QBItem, QBToRef,
 };
 use serde::{Deserialize, Serialize};
-use service_poxi::{Claim, ClaimBuilder, ClaimBuilderError, ClaimUnion};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use service_poxi::ClaimUnion;
+
 
 #[derive(Deserialize, Serialize)]
-pub(crate) struct InputPart {
+pub struct InputPart {
     part_number: String,
     invoice_number: i64,
     distributor_number: i64,
 }
 
 #[derive(Deserialize, Serialize)]
-pub(crate) struct InputInvoice {
-    customer_first_name: String,
-    customer_last_name: String,
-    customer_address_1: String,
-    customer_state: String,
-    customer_city: String,
-    customer_zip_code: String,
-    customer_email: Option<String>,
-    customer_phone_number: String,
-    product_code: String,
-    serial_number: i64,
-    model_number: String,
-    purchase_date: String,
-    requested_date: String,
-    completed_date: String,
-    miles_traveled: i64,
-    repair_code: Option<i64>,
-    defect_code: Option<i64>,
-    issue_description: String,
-    service_performed: String,
-    parts: Vec<Part>,
+pub struct InputInvoice {
+    pub customer_first_name: String,
+    pub customer_last_name: String,
+    pub customer_address_1: String,
+    pub customer_state: String,
+    pub customer_city: String,
+    pub customer_zip_code: String,
+    pub customer_email: Option<String>,
+    pub customer_phone_number: String,
+    pub product_code: String,
+    pub serial_number: i64,
+    pub model_number: String,
+    pub purchase_date: String,
+    pub requested_date: String,
+    pub completed_date: String,
+    pub miles_traveled: i64,
+    pub repair_code: Option<i64>,
+    pub defect_code: Option<i64>,
+    pub issue_description: String,
+    pub service_performed: String,
+    pub parts: Vec<InputPart>,
 }
 
-pub const HA_MANUFACTURER: &'static str = "ALLIANCE - SPEED QUEEN";
-pub const HA_MODEL_BRAND: &'static str = "SPEED QUEEN";
+
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct HAInvoice {
@@ -78,5 +69,11 @@ impl QBItem for HAInvoice {
 
     fn qb_id() -> &'static str {
         Invoice::qb_id()
+    }
+}
+
+impl QBToRef for HAInvoice {
+    fn ref_name(&self) -> Option<&String> {
+        self.qb_invoice.as_ref().and_then(|f| f.ref_name())
     }
 }

@@ -1,3 +1,9 @@
+use quick_oxibooks::{types::{common::{NtRef, CustomField, TxnTaxDetail}, Invoice, LineBuilder, LineDetail, SalesItemLineDetailBuilder, TaxLineDetail}, client::Quickbooks, Authorized, error::APIError, actions::QBQuery};
+use service_poxi::{ClaimBuilder, ClaimBuilderError, Claim};
+
+pub const HA_MANUFACTURER: &'static str = "ALLIANCE - SPEED QUEEN";
+pub const HA_MODEL_BRAND: &'static str = "SPEED QUEEN";
+
 pub(crate) fn default_qb_invoice(
     customer_ref: NtRef,
     items: &[NtRef],
@@ -53,19 +59,13 @@ pub(crate) fn default_qb_invoice(
         total_tax: Some(0.0),
     };
 
-    InvoiceBuilder::default()
+    Invoice::new()
         .custom_field(Some(custom_field))
         .customer_ref(Some(customer_ref))
         .sales_term_ref(Some(sales_term_ref))
         .line(Some(line))
         .doc_number(Some(doc_number))
-        .customer_memo(Some(NtRef {
-            value: Some(
-            "Warranty Claim Filed date w/Service Power: 8/xx/23\nClaim # CLAIM_PLACEHOLDER\nClaim paid 8/xx/23 $XXX ()\nVoucher # VOUCHER_PLACEHOLDER\nParts paid via Marcone ($xx.xx)\nInvoice # PART_INVOICE_PLACEHOLDER dated 8/xx/23"
-                    .into(),
-            ),
-            ..Default::default()
-        }))
+        .customer_memo(Some("Warranty Claim Filed date w/Service Power: 8/xx/23\nClaim # CLAIM_PLACEHOLDER\nClaim paid 8/xx/23 $XXX ()\nVoucher # VOUCHER_PLACEHOLDER\nParts paid via Marcone ($xx.xx)\nInvoice # PART_INVOICE_PLACEHOLDER dated 8/xx/23".into()))
         .build()
         .unwrap()
 }

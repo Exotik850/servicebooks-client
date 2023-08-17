@@ -31,9 +31,10 @@ macro_rules! get_str {
 }
 
 #[tauri::command]
-async fn submit_claim(claim: serde_json::Value, qb: State<'_, QBState>) -> Result<(), APIError> {
-    let input_invoice: InputInvoice = claim.try_into()?;
-    println!("{first_name} {last_name}");
+async fn submit_claim(claim: InputInvoice, qb: State<'_, QBState>) -> Result<(), APIError> {
+    let first_name = &claim.customer_first_name;
+    let last_name = &claim.customer_last_name;
+
     let st = format!("where DisplayName = '{first_name} {last_name}'");
     let cust = Customer::query_single(&qb.0, &st).await?;
 
