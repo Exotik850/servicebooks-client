@@ -12,8 +12,8 @@
     function addPart() {
         invoice.parts.push({
             part_number: "",
-            invoice_number: "",
-            distributor_number: "",
+            invoice_number: 0,
+            distributor_number: 0,
         });
         invoice = invoice;
     }
@@ -37,9 +37,9 @@
                 <label
                     >Distributor:
                     <select bind:value={part.distributor_number}>
-                        <option value="0000100675">Marcone</option>
-                        <option value="0000100777">Reliable Parts</option>
-                        <option value="000114927">Encompass</option>
+                        <option value=0000100675>Marcone</option>
+                        <option value=0000100777>Reliable Parts</option>
+                        <option value=000114927>Encompass</option>
                     </select>
                 </label>
                 <button

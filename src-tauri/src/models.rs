@@ -1,18 +1,16 @@
-use quick_oxibooks::types::{
-    Invoice, QBItem, QBToRef,
-};
+use quick_oxibooks::types::{Invoice, QBItem, QBToRef};
 use serde::{Deserialize, Serialize};
 use service_poxi::ClaimUnion;
 
-
 #[derive(Deserialize, Serialize)]
 pub struct InputPart {
-    part_number: String,
-    invoice_number: i64,
-    distributor_number: i64,
+    pub part_number: String,
+    pub invoice_number: i64,
+    pub distributor_number: i64,
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Default)]
+#[serde(default)]
 pub struct InputInvoice {
     pub customer_first_name: String,
     pub customer_last_name: String,
@@ -20,23 +18,21 @@ pub struct InputInvoice {
     pub customer_state: String,
     pub customer_city: String,
     pub customer_zip_code: String,
-    pub customer_email: Option<String>,
+    pub customer_email: String,
     pub customer_phone_number: String,
     pub product_code: String,
-    pub serial_number: i64,
+    pub serial_number: String,
     pub model_number: String,
     pub purchase_date: String,
     pub requested_date: String,
     pub completed_date: String,
-    pub miles_traveled: i64,
-    pub repair_code: Option<i64>,
-    pub defect_code: Option<i64>,
+    pub miles_traveled: String,
+    pub repair_code: String,
+    pub defect_code: String,
     pub issue_description: String,
     pub service_performed: String,
     pub parts: Vec<InputPart>,
 }
-
-
 
 #[derive(Default, Serialize, Deserialize, Debug, Clone)]
 pub(crate) struct HAInvoice {

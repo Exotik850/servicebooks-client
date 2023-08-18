@@ -9,7 +9,7 @@ use models::*;
 use quick_oxibooks::{
     actions::{QBCreate, QBQuery},
     error::APIError,
-    types::{Customer, Invoice},
+    types::{Customer, Invoice, Item},
     {client::Quickbooks, Authorized, Environment},
 };
 use service_poxi::{ClaimHandler, Retreive, Submit};
@@ -23,13 +23,6 @@ struct QBState(Quickbooks<Authorized>);
 struct SPRetrieveState(ClaimHandler<Retreive>);
 struct SPSubmitState(ClaimHandler<Submit>);
 
-/// Access a string property, default to empty string if missing
-macro_rules! get_str {
-    ($obj:expr, $key:expr) => {
-        $obj.get($key).map_or("", |v| v.as_str().unwrap())
-    };
-}
-
 #[tauri::command]
 async fn submit_claim(claim: InputInvoice, qb: State<'_, QBState>) -> Result<(), APIError> {
     let first_name = &claim.customer_first_name;
@@ -38,15 +31,34 @@ async fn submit_claim(claim: InputInvoice, qb: State<'_, QBState>) -> Result<(),
     let st = format!("where DisplayName = '{first_name} {last_name}'");
     let cust = Customer::query_single(&qb.0, &st).await?;
 
-    // println!("Before: {inv}");
+    let mut items = vec![];
+
+    for part in claim.parts.into_iter() {
+        let query_str = format!("where Name = '{}'", &part.part_number);
+        match Item::query_single(&qb.0, &query_str).await {
+            Ok(inv) => items.push(inv.into()),
+            Err(_) => {
+                let new_item = create_item(&part.part_number, &qb.0).await?;
+                items.push(new_item.into())
+            }
+        }
+    }
 
     let next = generate_claim_number(&qb.0).await?;
-    let inv = default_qb_invoice(cust.into(), &[], next);
+    let inv = default_qb_invoice(cust.into(), &items, next);
     let inv = inv.create(&qb.0).await?;
     println!("After: {inv}");
     // dbg!(next);
 
     Ok(())
+}
+
+async fn create_item(part_number: &str, qb: &Quickbooks<Authorized>) -> Result<Item, APIError> {
+    let item = Item::new()
+        .name(part_number)
+        .build()?;
+
+    item.create(qb).await
 }
 
 #[tauri::command]
