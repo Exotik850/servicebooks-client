@@ -1,10 +1,11 @@
+use chrono::{NaiveDate, DateTime};
 use quick_oxibooks::{
     actions::QBQuery,
     client::Quickbooks,
     error::APIError,
     types::{
         common::{CustomField, NtRef, TxnTaxDetail},
-        Invoice, LineBuilder, LineDetail, SalesItemLineDetail, SalesItemLineDetailBuilder,
+        Invoice, LineBuilder, LineDetail, SalesItemLineDetailBuilder,
         TaxLineDetail,
     },
     Authorized,
@@ -26,7 +27,7 @@ pub(crate) fn default_qb_invoice(
         field_type: None,
     }];
 
-    let line = items.iter().fold(vec![LineBuilder::default()
+    let line = items.into_iter().fold(vec![LineBuilder::default()
         .line_detail(LineDetail::SalesItemLineDetail(
             SalesItemLineDetailBuilder::default()
             .item_ref::<NtRef>(("Warranty - Speed Queen:SQ Warranty Call","5489").into())
@@ -93,7 +94,7 @@ pub(crate) fn default_sb_claim(claim_number: String) -> Result<Claim, ClaimBuild
 pub(crate) async fn generate_claim_number(qb: &Quickbooks<Authorized>) -> Result<String, APIError> {
     let inv = Invoice::query_single(
         qb,
-        "where DocNumber like '%W' orderby MetaData.CreateTime desc",
+        "where DocNumber like '%W' orderby DocNumber desc startposition 2",
     )
     .await?;
 
@@ -107,6 +108,7 @@ pub(crate) async fn generate_claim_number(qb: &Quickbooks<Authorized>) -> Result
         .parse::<u64>()
         .expect("Couldn't Parse DocNumber")
         + 1;
+        
     let num = format!("{}W", num);
 
     Ok(num)

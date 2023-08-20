@@ -24,15 +24,15 @@ struct SPRetrieveState(ClaimHandler<Retreive>);
 struct SPSubmitState(ClaimHandler<Submit>);
 
 #[tauri::command]
-async fn submit_claim(claim: InputInvoice, qb: State<'_, QBState>) -> Result<(), APIError> {
+async fn submit_claim(claim: InputInvoice, qb: State<'_, QBState>) -> Result<(), APIError> {   
     let first_name = &claim.customer_first_name;
     let last_name = &claim.customer_last_name;
-
+    
     let st = format!("where DisplayName = '{first_name} {last_name}'");
     let cust = Customer::query_single(&qb.0, &st).await?;
-
+    
     let mut items = vec![];
-
+    
     for part in claim.parts.into_iter() {
         let query_str = format!("where Name = '{}'", &part.part_number);
         match Item::query_single(&qb.0, &query_str).await {
@@ -43,12 +43,10 @@ async fn submit_claim(claim: InputInvoice, qb: State<'_, QBState>) -> Result<(),
             }
         }
     }
-
+    
     let next = generate_claim_number(&qb.0).await?;
     let inv = default_qb_invoice(cust.into(), &items, next);
     let inv = inv.create(&qb.0).await?;
-    println!("After: {inv}");
-    // dbg!(next);
 
     Ok(())
 }
