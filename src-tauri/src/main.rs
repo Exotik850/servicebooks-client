@@ -8,7 +8,6 @@ use blocking::Block;
 use models::*;
 use quick_oxibooks::{
     actions::{QBCreate, QBQuery},
-    error::APIError,
     types::{Customer, Invoice, Item},
     {client::Quickbooks, Authorized, Environment},
 };
@@ -23,13 +22,20 @@ struct QBState(Quickbooks<Authorized>);
 struct SPRetrieveState(ClaimHandler<Retreive>);
 struct SPSubmitState(ClaimHandler<Submit>);
 
+type Result<T> = std::result::Result<T, String>;
+
 #[tauri::command]
-async fn submit_claim(claim: InputInvoice, qb: State<'_, QBState>) -> Result<(), APIError> {   
+async fn submit_claim(claim: InputInvoice, app_handle: AppHandle) -> Result<HAInvoice> {   
+
+    let qb: State<QBState> = app_handle.state();
+    let sp_submit: State<SPSubmitState> = app_handle.state();  
+    let sp_retrieve: State<SPRetrieveState> = app_handle.state();
+
     let first_name = &claim.customer_first_name;
     let last_name = &claim.customer_last_name;
     
     let st = format!("where DisplayName = '{first_name} {last_name}'");
-    let cust = Customer::query_single(&qb.0, &st).await?;
+    let cust = Customer::query_single(&qb.0, &st).await.map_err(|e| e.to_string())?;
     
     let mut items = vec![];
     
@@ -44,19 +50,34 @@ async fn submit_claim(claim: InputInvoice, qb: State<'_, QBState>) -> Result<(),
         }
     }
     
-    let next = generate_claim_number(&qb.0).await?;
-    let inv = default_qb_invoice(cust.into(), &items, next);
-    let inv = inv.create(&qb.0).await?;
+    let next = generate_claim_number(&qb.0).await.map_err(|e| e.to_string())?;
+    let inv = default_qb_invoice(cust.into(), &items, next.clone());
+    let qb_invoice = Some(inv.create(&qb.0).await.map_err(|e| e.to_string())?);
+    let sp_claim = default_sb_claim(next.clone()).map_err(|e| e.to_string())?;
 
-    Ok(())
+    let sp_claim_sub = sp_submit.0.submit_claim(sp_claim.clone()).await.map_err(|e| e.to_string())?;
+    if sp_claim_sub.claims.is_empty() {
+        return Err("No claims in repsonse when submitting servicepower claim".into());
+    }
+
+    let mut sp_claim_ret = sp_retrieve.0.get_claim(&next).await.map_err(|e| e.to_string())?;
+    if sp_claim_sub.claims.is_empty() {
+        return Err("No claims in repsonse when retreiving submitted servicepower claim".into());
+    }
+    let sp_claim_ret = sp_claim_ret.claims.remove(0);
+
+    let sp_claim = Some((sp_claim, sp_claim_ret).into());
+
+    Ok(HAInvoice { qb_invoice, sp_claim })
 }
 
-async fn create_item(part_number: &str, qb: &Quickbooks<Authorized>) -> Result<Item, APIError> {
+async fn create_item(part_number: &str, qb: &Quickbooks<Authorized>) -> Result<Item> {
     let item = Item::new()
         .name(part_number)
-        .build()?;
+        .build()
+        .map_err(|e| e.to_string())?;
 
-    item.create(qb).await
+    item.create(qb).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -65,11 +86,11 @@ async fn get_claim(
     get_qb: bool,
     get_sb: bool,
     app_handle: AppHandle,
-) -> Result<HAInvoice, String> {
+) -> Result<HAInvoice> {
     let retreive_handler: State<SPRetrieveState> = app_handle.state();
     let qb: State<QBState> = app_handle.state();
 
-    let sb_claim = match get_sb {
+    let sp_claim = match get_sb {
         true => Some(
             retreive_handler
                 .0
@@ -100,7 +121,7 @@ async fn get_claim(
 
     Ok(HAInvoice {
         qb_invoice,
-        sb_claim,
+        sp_claim,
     })
 }
 
@@ -136,11 +157,11 @@ async fn main() {
             match event.event() {
                 WindowEvent::CloseRequested { api, .. } => {
                     api.prevent_close();
-                    state.0.cleanup().wait();
+                    state.0.cleanup().wait().expect("Couldn't clean up quickbooks client");
                     window.close().unwrap();
                 }
                 WindowEvent::Destroyed => {
-                    state.0.cleanup().wait();
+                    state.0.cleanup().wait().expect("Couldn't clean up quickbooks client");
                 }
                 _ => (),
             }
