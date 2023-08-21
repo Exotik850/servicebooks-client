@@ -39,7 +39,7 @@ pub(crate) struct HAInvoice {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub qb_invoice: Option<Invoice>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub sb_claim: Option<ClaimUnion>,
+    pub sp_claim: Option<ClaimUnion>,
 }
 
 impl QBItem for HAInvoice {

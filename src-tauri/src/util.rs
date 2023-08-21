@@ -1,4 +1,3 @@
-use chrono::{NaiveDate, DateTime};
 use quick_oxibooks::{
     actions::QBQuery,
     client::Quickbooks,
@@ -60,8 +59,8 @@ pub(crate) fn default_qb_invoice(
     let txn_tax_detail = TxnTaxDetail {
         tax_line: Some(vec![LineBuilder::default()
             .line_detail(LineDetail::TaxLineDetail(TaxLineDetail {
-                percent_based: true,
-                tax_percent: 9.75,
+                percent_based: Some(true),
+                tax_percent: Some(9.75),
                 ..Default::default()
             }))
             .build()
@@ -77,6 +76,7 @@ pub(crate) fn default_qb_invoice(
         .sales_term_ref(sales_term_ref)
         .line(line)
         .doc_number(doc_number)
+        .txn_tax_detail(txn_tax_detail)
         .customer_memo("Warranty Claim Filed date w/Service Power: 8/xx/23\nClaim # CLAIM_PLACEHOLDER\nClaim paid 8/xx/23 $XXX ()\nVoucher # VOUCHER_PLACEHOLDER\nParts paid via Marcone ($xx.xx)\nInvoice # PART_INVOICE_PLACEHOLDER dated 8/xx/23")
         .build()
         .unwrap()
