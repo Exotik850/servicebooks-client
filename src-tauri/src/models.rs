@@ -5,8 +5,8 @@ use service_poxi::ClaimUnion;
 #[derive(Deserialize, Serialize)]
 pub struct InputPart {
     pub part_number: String,
-    pub invoice_number: i64,
-    pub distributor_number: i64,
+    pub invoice_number: String,
+    pub distributor_number: String,
 }
 
 #[derive(Deserialize, Serialize, Default)]
@@ -24,9 +24,9 @@ pub struct InputInvoice {
     pub serial_number: String,
     pub model_number: String,
     pub purchase_date: String,
-    pub requested_date: String,
-    pub completed_date: String,
-    pub miles_traveled: String,
+    pub date_completed: String,
+    pub date_requested: String,
+    pub miles_traveled: u32,
     pub repair_code: String,
     pub defect_code: String,
     pub issue_description: String,

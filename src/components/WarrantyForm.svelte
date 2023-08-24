@@ -182,7 +182,7 @@
                 >
                 <label
                     >Serial Number: <input
-                        bind:value={invoice.serial_numbeer}
+                        bind:value={invoice.serial_number}
                         type="number"
                         max="999999999"
                     /></label

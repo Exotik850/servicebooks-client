@@ -4,7 +4,7 @@
     "beforeBuildCommand": "npm run build:web",
     "beforeDevCommand": "npm run dev:web",
     "devPath": "http://localhost:5471",
-    "distDir": "../dist"
+    "distDir": "../build"
   },
   "package": {
     "productName": "servicebooks-client",
@@ -51,7 +51,11 @@
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
-        "timestampUrl": ""
+        "timestampUrl": "",
+        "webviewInstallMode": {
+          "silent": false,
+          "type": "offlineInstaller"
+        }
       }
     },
     "security": {

@@ -30,7 +30,6 @@
                 <label
                     >Invoice Number: <input
                         bind:value={part.invoice_number}
-                        type="number"
                         required
                     /></label
                 >
