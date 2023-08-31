@@ -1,6 +1,3 @@
-use std::str::FromStr;
-
-use chrono::NaiveDate;
 use quick_oxibooks::{
     actions::QBQuery,
     client::Quickbooks,
@@ -12,7 +9,7 @@ use quick_oxibooks::{
     },
     Authorized,
 };
-use service_poxi::{Claim, ClaimBuilder, ClaimBuilderError};
+use service_poxi::{Claim, ClaimBuilder};
 
 use crate::models::InputInvoice;
 
@@ -112,7 +109,6 @@ pub(crate) fn default_sp_claim(
         customer_email,
         customer_first_name,
         customer_last_name,
-        customer_phone_number,
         customer_state,
         customer_zip_code,
         defect_code,

@@ -1565,6 +1565,7 @@ dependencies = [
  "log",
  "oauth2",
  "open",
+ "parking_lot",
  "reqwest",
  "serde",
  "serde_json",

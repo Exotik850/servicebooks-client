@@ -75,6 +75,15 @@
         "center": true,
         "transparent": true,
         "visible": false
+      },
+      {
+        "fullscreen": false,
+        "height": 500,
+        "width": 500,
+        "decorations": true,
+        "focus": true,
+        "center": true,
+        "label": "login"
       }
     ]
   }
