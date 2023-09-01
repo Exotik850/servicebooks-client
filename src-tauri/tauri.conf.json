@@ -3,6 +3,7 @@
   "build": {
     "beforeBuildCommand": "npm run build:web",
     "beforeDevCommand": "npm run dev:web",
+    "withGlobalTauri": true,
     "devPath": "http://localhost:5471",
     "distDir": "../build"
   },
@@ -80,6 +81,8 @@
         "fullscreen": false,
         "height": 500,
         "width": 500,
+        "title": "OAuth2.0 Authorization",
+        "url": "/login.html",
         "decorations": true,
         "focus": true,
         "center": true,

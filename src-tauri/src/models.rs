@@ -20,6 +20,7 @@ pub struct InputInvoice {
     pub customer_zip_code: String,
     pub customer_email: String,
     pub customer_phone_number: String,
+    pub claim_number: Option<String>,
     pub product_code: String,
     pub serial_number: String,
     pub model_number: String,

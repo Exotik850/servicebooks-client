@@ -51,13 +51,15 @@
     };
 
     let errors = null;
+    let getQb = false;
+    let getSb = false;
 
     async function submitClaim() {
         try {
             // await invoiceSchema.validate(invoice, {abortEarly: false});
             // let invoice_json = JSON.stringify(invoice);
             errors = {};
-            await invoke("submit_claim", { claim: invoice }).then(
+            await invoke("submit_claim", { claim: invoice, get_sb: getSb }).then(
                 (customer) => {
                     console.log(customer);
                 }
@@ -372,9 +374,23 @@
                 {/if}
             {/if}
             <div class="form-section">
+                <fieldset>
+                    <label for="quickbooks">
+                        Quickbooks
+                        <input type="checkbox" id="quickbooks" on:change={() => (getQb = !getQb)} />
+                    </label>
+                    <label for="servicepower">
+                        Servicepower
+                        <input type="checkbox" id="servicepower" on:change={() => (getSb = !getSb)} />
+                    </label>
+                </fieldset>
+                {#if !getQb && getSb}
+                    <label for="claim_number">Claim Number (Required): <input bind:value={invoice.claim_number}></label>
+                {/if}
                 <button
                     on:click|preventDefault={submitClaim}
                     data-tooltip="Make sure you have everything you need!"
+                    disabled={!getQb && getSb && !invoice.claim_number}
                     >Submit</button
                 >
             </div>
@@ -417,6 +433,10 @@
     }
     .form-section textarea {
         resize: none;
+    }
+    .form-section fieldset {
+        display: flex;
+        justify-content: space-evenly;
     }
     h2 {
         text-align: center;

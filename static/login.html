@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Message</title>
+</head>
+<body>
+
+  <p>Please follow the directions in the other window that popped up, and enter the refresh token in the box below.</p>
+
+  <form>
+    <label for="token">Refresh Token:</label><br>
+    <input type="text" id="token" name="token"><br> 
+    <input type="submit" value="Submit" onclick="login(token.value)"> 
+  </form>
+
+  <script>
+    const { invoke } = window.__TAURI__.tauri
+    async function login(token) {
+      await invoke('login', { token: token }) 
+    }
+  </script>
+
+</body>
+</html>

@@ -1,5 +1,4 @@
 use quick_oxibooks::{
-    actions::QBQuery,
     client::Quickbooks,
     error::APIError,
     qb_query,
@@ -7,7 +6,6 @@ use quick_oxibooks::{
         common::{CustomField, NtRef, TxnTaxDetail},
         Invoice, LineBuilder, LineDetail, SalesItemLineDetailBuilder, TaxLineDetail,
     },
-    Authorized,
 };
 use service_poxi::{Claim, ClaimBuilder};
 
@@ -149,7 +147,6 @@ pub(crate) fn default_sp_claim(
     let requested_date: String = date_requested.split('-').collect();
     let completed_date: String = date_completed.split('-').collect();
 
-
     ClaimBuilder::default()
         .brand_name(HA_MODEL_BRAND)
         .manufacturer_name(HA_MANUFACTURER)
@@ -178,7 +175,7 @@ pub(crate) fn default_sp_claim(
         .map_err(|e| e.to_string())
 }
 
-pub(crate) async fn generate_claim_number(qb: &Quickbooks<Authorized>) -> Result<String, APIError> {
+pub(crate) async fn generate_claim_number(qb: &Quickbooks) -> Result<String, APIError> {
     let inv =
         qb_query!(qb, Invoice | doc_number like "%W" ; "orderby DocNumber desc startposition 2")?;
 
