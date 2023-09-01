@@ -1,7 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Message</title>
+  <title>OAuth2.0 Authorization</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+    }
+    
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: white;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    label, input {
+      margin-bottom: 10px;
+    }
+    
+    input[type="text"] {
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    
+    button {
+      background-color: #007bff;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    
+    button:hover {
+      background-color: #0062cc;
+    }
+  </style>
 </head>
 <body>
 
@@ -10,14 +53,28 @@
   <form>
     <label for="token">Refresh Token:</label><br>
     <input type="text" id="token" name="token"><br> 
-    <input type="submit" value="Submit" onclick="login(token.value)"> 
+    <button id="submit" onclick="login(token.value)">Submit</button>
   </form>
 
   <script>
     const { invoke } = window.__TAURI__.tauri
     async function login(token) {
+      if (token === '') {
+        return;
+      }
       await invoke('login', { token: token }) 
     }
+
+    const tokenInput = document.getElementById('token');
+    const submitBtn = document.getElementById('submit');
+
+    tokenInput.addEventListener('input', () => {
+      if(tokenInput.value === '') {
+        submitBtn.disabled = true;
+      } else {
+        submitBtn.disabled = false;
+      }
+    });
   </script>
 
 </body>
