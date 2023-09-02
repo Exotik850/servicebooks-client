@@ -14,8 +14,6 @@ use quick_oxibooks::{
 use service_poxi::{ClaimHandler, Retreive, Submit};
 use tauri::{generate_context, AppHandle, Manager, State, WindowEvent};
 use util::*;
-#[cfg(any(windows, target_os = "macos"))]
-use window_shadows::set_shadow;
 
 struct QBState(Mutex<Option<Quickbooks>>);
 struct SPRetrieveState(ClaimHandler<Retreive>);
@@ -160,7 +158,7 @@ async fn main() {
             .expect("Could not open quickbooks client"),
         )
     } else {
-        open::that_detached("https://developer.intuit.com/v2/OAuth2Playground")
+        open::that_detached("https://developer.intuit.com/app/developer/playground")
             .expect("Could not open URL!");
         None
     };
@@ -171,9 +169,6 @@ async fn main() {
         .invoke_handler(tauri::generate_handler![submit_claim, get_claim, login])
         .setup(move |app| {
             let window = app.get_window("main").unwrap();
-            #[cfg(any(windows, target_os = "macos"))]
-            set_shadow(&window, true).unwrap();
-
             if cache_hit {
                 let login = app.get_window("login").unwrap();
                 login.close().expect("Could not close login window");
@@ -193,6 +188,12 @@ async fn main() {
                 WindowEvent::CloseRequested { api, .. } => {
                     api.prevent_close();
                     close(state.inner());
+                    if window.label() == "login" {
+                        let Some(main) = window.get_window("main") else {
+                            return;
+                        };
+                        main.close().expect("Could not close main window when login window closed");
+                    }
                     window.close().unwrap();
                 }
                 WindowEvent::Destroyed => {
@@ -200,6 +201,7 @@ async fn main() {
                 }
                 _ => (),
             }
+
         })
         .run(generate_context!())
         .expect("error while running tauri application");

@@ -9,9 +9,17 @@
   },
   "package": {
     "productName": "servicebooks-client",
-    "version": "0.1.0"
+    "version": "v0.1.1"
   },
   "tauri": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://gist.github.com/Exotik850/59af87fb03afaea799f0040862c08d4d/raw"
+      ],
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDczNkMyODU0MUVFRkY3MwpSV1J6Lys1QmhjSTJCOTIwbzIxYk4wMzFHWlVtaDlnRHAyOTVQeGFkLzNON1J3WStLZHdFdyswSgo="
+    },
     "allowlist": {
       "window": {
         "close": true,
@@ -24,7 +32,7 @@
     },
     "bundle": {
       "active": true,
-      "category": "DeveloperTool",
+      "category": "Finance",
       "copyright": "",
       "deb": {
         "depends": []
@@ -54,17 +62,14 @@
         "digestAlgorithm": "sha256",
         "timestampUrl": "",
         "webviewInstallMode": {
-          "silent": false,
-          "type": "offlineInstaller"
+          "type": "downloadBootstrapper"
         }
       }
     },
     "security": {
       "csp": null
     },
-    "updater": {
-      "active": false
-    },
+
     "windows": [
       {
         "fullscreen": false,
@@ -74,7 +79,6 @@
         "width": 900,
         "focus": true,
         "center": true,
-        "transparent": true,
         "visible": false
       },
       {
