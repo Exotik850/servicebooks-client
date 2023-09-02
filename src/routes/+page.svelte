@@ -23,11 +23,11 @@
 <svelte:head>
     <link
         rel="stylesheet"
-        href="https://fonts.googleapis.com/icon?family=Material+Icons"
+        href="/material_icons.css"
     />
     <link
         rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css"
+        href="/pico.min.css"
     />
 </svelte:head>
 
@@ -45,7 +45,7 @@
 </div>
 
 <style>
-    .container {
+        .container {
         margin: 0 auto;
         float: unset;
         height: 100%;
