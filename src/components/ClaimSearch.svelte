@@ -30,20 +30,27 @@
             });
     }
 
-    function displayObject(obj) {
+    function displayObject(obj, indent = 0) {
+        const inc = 10;
         if (obj && typeof obj === "object") {
             return Object.entries(obj)
                 .map(([key, value]) => {
                     if (typeof value === "object") {
-                        return `<div class="nested">
-            <p><strong>${key}:</strong></p>
-            ${displayObject(value)}  
-          </div>`;
+                        return `<div class="nested" style="padding-left:${
+                            indent + inc
+                        }px">
+                        <p><strong>${key}:</strong></p>
+                        ${displayObject(value, indent + inc)}  
+                    </div>`;
                     } else {
-                        return `<p><strong>${key}:</strong> ${value}</p>`;
+                        return `<p style="padding-left:${indent}px"><strong>${key}:</strong> ${value}</p>`;
                     }
                 })
                 .join("");
+        } else if (obj !== undefined && obj !== null) {
+            return `<p style="padding-left:${indent}px">${obj}</p>`;
+        } else {
+            return "<br/>";
         }
     }
 </script>
@@ -61,14 +68,26 @@
         <fieldset>
             <label for="quickbooks">
                 Quickbooks
-                <input type="checkbox" id="quickbooks" on:change={() => (getQb = !getQb)} />
+                <input
+                    type="checkbox"
+                    id="quickbooks"
+                    on:change={() => (getQb = !getQb)}
+                />
             </label>
             <label for="servicepower">
                 Servicepower
-                <input type="checkbox" id="servicepower" on:change={() => (getSb = !getSb)} />
+                <input
+                    type="checkbox"
+                    id="servicepower"
+                    on:change={() => (getSb = !getSb)}
+                />
             </label>
         </fieldset>
-        <button type="submit" on:click|preventDefault={getClaim}>Search</button>
+        <button
+            type="submit"
+            disabled={(!getQb && !getSb) || !claimNumber}
+            on:click|preventDefault={getClaim}>Search</button
+        >
     </form>
 </article>
 
