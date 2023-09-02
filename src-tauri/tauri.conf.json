@@ -55,7 +55,7 @@
         "timestampUrl": "",
         "webviewInstallMode": {
           "silent": false,
-          "type": "offlineInstaller"
+          "type": "embedBootstrapper"
         }
       }
     },
