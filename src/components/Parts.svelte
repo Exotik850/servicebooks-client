@@ -12,8 +12,8 @@
     function addPart() {
         invoice.parts.push({
             part_number: "",
-            invoice_number: 0,
-            distributor_number: 0,
+            invoice_number: null,
+            distributor_number: null,
         });
         invoice = invoice;
     }
@@ -58,6 +58,7 @@
 <style>
     .part {
         display: flex;
+        justify-content: center;
         align-items: center;
         gap: 5px;
     }
@@ -65,6 +66,7 @@
         border-bottom: 2px;
         border-color: var(--primary);
     }
+
     .delete {
         background: rgb(126, 21, 21);
         color: rgb(219, 219, 219);

@@ -22,27 +22,82 @@
     });
 
     const invoiceSchema = yup.object({
-        customer_first_name: yup.string().trim().min(3).required(),
-        customer_last_name: yup.string().trim().min(3).required(),
-        customer_address_1: yup.string().trim().required(),
-        customer_state: yup.string().trim().required(),
-        customer_city: yup.string().trim().required(),
-        customer_zip_code: yup.string().trim().required(),
+        customer_first_name: yup
+            .string()
+            .trim()
+            .min(3)
+            .required("Customer First Name is required"),
+        customer_last_name: yup
+            .string()
+            .trim()
+            .min(3)
+            .required("Customer Last Name is required"),
+        customer_address_1: yup
+            .string()
+            .trim()
+            .required("Customer Address is required"),
+        customer_city: yup
+            .string()
+            .trim()
+            .required("Customer City is required"),
+        customer_zip_code: yup
+            .string()
+            .trim()
+            .required("Customer Zip Code is required"),
         customer_email: yup.string().email(),
         customer_phone_number: yup
             .string()
-            .matches("^(+0?1s)?(?d{3})?[s.-]d{3}[s.-]d{4}$"),
-        product_code: yup.string().trim().min(8).max(10).required(),
-        serial_number: yup.number().min(10).max(10).required(),
-        model_number: yup.string().trim().min(8).required(),
-        purchase_date: yup.date().required(),
-        requested_date: yup.date().required(),
-        completed_date: yup.date().required(),
-        miles_traveled: yup.number().min(1).max(999).required(),
-        repair_code: yup.number().min(1).max(999),
-        defect_code: yup.number().min(1).max(999),
-        issue_description: yup.string().trim().required(),
-        service_performed: yup.string().trim().required(),
+            .matches(
+                "^d{10}$",
+                "Phone number must consist of ten digits, no dashes, periods, or other punctuation is allowed"
+            )
+            .required("Customer Phone Number is required"),
+        product_code: yup
+            .string()
+            .trim()
+            .min(8)
+            .max(10)
+            .required("Appliance Product Code is required"),
+        serial_number: yup
+            .number()
+            .min(10)
+            .max(10)
+            .required("Appliance Serial Number is required"),
+        model_number: yup
+            .string()
+            .trim()
+            .min(8)
+            .required("Appliance Model Number is required"),
+        purchase_date: yup
+            .date()
+            .required("Appliance Purchase Date is required"),
+        requested_date: yup.date().required("Service Request Date is required"),
+        completed_date: yup
+            .date()
+            .required("Service Completed Date is required"),
+        miles_traveled: yup
+            .number()
+            .min(1)
+            .max(999)
+            .required("Miles Traveled is required"),
+        repair_code: yup
+            .number()
+            .min(1)
+            .max(999)
+            .required("Repair Code is required"),
+        defect_code: yup
+            .number()
+            .min(1)
+            .max(999)
+            .required("Defect Code is required"),
+        issue_description: yup
+            .string()
+            .trim()
+            .required("Issue Descripiton is required"),
+        service_performed: yup
+            .string()
+            .trim()
+            .required("Service Performed is required"),
         parts: yup.array().of(partSchema),
     });
 
@@ -64,24 +119,35 @@
     let loading = false;
 
     async function submitClaim() {
-        let loading = true;
+        loading = true;
+        errors = {};
+
         try {
-            console.log(invoice.claim_number);
             await invoiceSchema.validate(invoice, { abortEarly: false });
-            errors = {};
-            await invoke("submit_claim", { claim: invoice, get_sb: getSb })
-                .then((customer) => {
-                    console.log(customer);
-                })
-                .finally(() => (loading = false));
+            const customer = await invoke("submit_claim", {
+                claim: invoice,
+                getSb,
+            });
+            console.log(customer);
         } catch (error) {
-            if (typeof error === "object") {
+            if (error instanceof yup.ValidationError) {
                 errors = error.inner.reduce((acc, err) => {
-                    return { ...acc, [err.path]: err.message };
+                    return {
+                        ...acc,
+                        [err.message]: "",
+                    };
                 }, {});
             } else {
                 errors = error;
             }
+
+            return;
+        } finally {
+            loading = false;
+        }
+
+        if (errors) {
+            console.error(errors);
         }
     }
 
@@ -152,13 +218,18 @@
                 >
                 <div class="grid">
                     <label
-                        >State: <input
-                            bind:value={invoice.customer_state}
+                        >City: <input
+                            bind:value={invoice.customer_city}
                         /></label
                     >
                     <label
                         >Zip Code: <input
                             bind:value={invoice.customer_zip_code}
+                        /></label
+                    >
+                    <label
+                        >State: <input
+                            bind:value={invoice.customer_state}
                         /></label
                     >
                 </div>
@@ -365,8 +436,8 @@
         </Transition>
     {:else if step === 3}
         <Transition>
+            <h2>Parts Used</h2>
             <div class="form-section">
-                <h2>Parts Used</h2>
                 <Parts {invoice} />
             </div>
             {#if loading}
@@ -375,13 +446,22 @@
                 {#if typeof errors === "object"}
                     {#each Object.entries(errors) as [key, error]}
                         <div color="danger">
-                            <h4>{key}</h4>
-                            <p>{error}</p>
+                            <input
+                                type="text"
+                                placeholder={key}
+                                readonly
+                                aria-invalid="true"
+                            />
                         </div>
                     {/each}
                 {:else}
                     <div color="danger">
-                        <p>{errors}</p>
+                        <input
+                            type="text"
+                            placeholder={errors}
+                            readonly
+                            aria-invalid="true"
+                        />
                     </div>
                 {/if}
             {/if}
@@ -392,7 +472,7 @@
                         <input
                             type="checkbox"
                             id="quickbooks"
-                            on:change={() => (getQb = !getQb)}
+                            bind:checked={getQb}
                         />
                     </label>
                     <label for="servicepower">
@@ -400,7 +480,7 @@
                         <input
                             type="checkbox"
                             id="servicepower"
-                            on:change={() => (getSb = !getSb)}
+                            bind:checked={getSb}
                         />
                     </label>
                 </fieldset>

@@ -80,7 +80,7 @@ async fn get_claim(
     let qb: State<QBState> = app_handle.state();
 
     let qb_ref = qb.0.lock().await;
-    let qb_ref = qb_ref.as_ref().unwrap();
+    let qb_ref = qb_ref.as_ref().ok_or("Could not grab lock on QB State!".to_string())?;
 
     let qb_invoice = match get_qb {
         true => Some(
@@ -112,7 +112,7 @@ async fn get_claim(
 #[tauri::command]
 async fn login(app_handle: AppHandle, token: String) -> Result<()> {
     if let Some(login) = app_handle.get_window("login") {
-        login.close().expect("Couldn't close login window!");
+        login.close().map_err(|e| e.to_string())?;
     }
 
     let qb: State<QBState> = app_handle.state();
@@ -129,9 +129,9 @@ async fn login(app_handle: AppHandle, token: String) -> Result<()> {
 
     app_handle
         .get_window("main")
-        .expect("Could not get main window from app handle")
+        .ok_or("Could not get main window from app handle".to_string())?
         .show()
-        .expect("Could not reveal the main window");
+        .map_err(|e| e.to_string())?;
     println!("Main window shown");
 
     Ok(())
@@ -179,11 +179,11 @@ async fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![submit_claim, get_claim, login, show_main])
         .setup(move |app| {
-            let window = app.get_window("main").unwrap();
+            let window = app.get_window("main").expect("No main window on startup");
             window_shadows::set_shadow(&window, true).expect("Couldn't set shadow on window!");
 
             if cache_hit {
-                let login = app.get_window("login").unwrap();
+                let login = app.get_window("login").expect("No Login window to close");
                 login.close().expect("Could not close login window");
             }
 
@@ -222,7 +222,7 @@ fn handle_close_requested(window: &tauri::Window, state: State<QBState>) {
         _ => (),
     }
 
-    window.close().unwrap();
+    window.close().expect("Could not close window!");
 }
 
 fn close(qb: &QBState) {

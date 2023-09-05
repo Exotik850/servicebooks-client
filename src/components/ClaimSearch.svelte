@@ -77,7 +77,7 @@
                 <input
                     type="checkbox"
                     id="quickbooks"
-                    on:change={() => (getQb = !getQb)}
+                    bind:checked={getQb}
                 />
             </label>
             <label for="servicepower">
@@ -85,7 +85,7 @@
                 <input
                     type="checkbox"
                     id="servicepower"
-                    on:change={() => (getSb = !getSb)}
+                    bind:checked={getSb}
                 />
             </label>
         </fieldset>
