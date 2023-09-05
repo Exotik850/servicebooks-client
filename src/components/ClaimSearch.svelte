@@ -7,11 +7,14 @@
     let claimNumber = "";
     let claim = null;
     let error = null;
+    let loading = false;
     let getQb = false;
     let getSb = false;
 
+
     async function getClaim() {
         error = "";
+        loading = true;
         if (claimNumber == "") {
             claim = null;
             return;
@@ -27,6 +30,9 @@
             .catch((err) => {
                 console.error(err);
                 error = err;
+            })
+            .finally(() => {
+                loading = false;
             });
     }
 
@@ -101,7 +107,9 @@
     </div>
 {/if}
 
-{#if claim}
+{#if loading}
+<article aria-busy="true" class="secondary"></article>
+{:else if claim}
     <div class="claim">
         <Transition>
             <article>

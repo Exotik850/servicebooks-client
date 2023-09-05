@@ -1,14 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
-		<meta name="viewport" content="width=device-width; height=device-height" />
-		%sveltekit.head%
-	</head>
-	<body data-sveltekit-preload-data="hover">
-		<div style="display: contents; background: none;">%sveltekit.body%</div>
-	</body>
+<html lang="en" data-theme="dark">
+
+<head>
+	<meta charset="utf-8" />
+	<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+	<meta name="viewport" content="width=device-width; height=device-height" />
+	%sveltekit.head%
+</head>
+
+<body data-sveltekit-preload-data="hover">
+	<div style="display: contents; background: none;">%sveltekit.body%</div>
+</body>
+
 </html>
 
 <style>
@@ -16,62 +19,37 @@
 		font-family: "Comfortaa";
 		src: url('/fonts/Comfortaa-Light.ttf');
 	}
-/* Red Light scheme (Default) */
-/* Can be forced with data-theme="light" */
-[data-theme="light"],
-:root:not([data-theme="dark"]) {
-  --primary: #92C29A;
-  --primary-hover: #1D7564;
-  --primary-focus: #166749;
-  --primary-inverse: #093B44;
-  /* --background-color: #0F2739; */
-  --background-color: none;
-}
 
-/* Red Dark scheme (Auto) */
-/* Automatically enabled if user has Dark mode enabled */
-@media only screen and (prefers-color-scheme: dark) {
-  :root:not([data-theme]) {
-    --primary: #92C29A;
-	--primary-hover: #1D7564;
-	--primary-focus: #166749;
-	--primary-inverse: #093B44;
-  --background-color: none;
-	/* --background-color: #0F2739; */
-  }
-}
+	/* Red Dark scheme (Forced) */
+	/* Enabled if forced with data-theme="dark" */
+	[data-theme="dark"] {
+		--primary: #92C29A;
+		--primary-hover: #1D7564;
+		--primary-focus: #166749;
+		--primary-inverse: #093B44;
+		--background-color: none;
+		/* --background-color: #0F2739; */
+	}
 
-/* Red Dark scheme (Forced) */
-/* Enabled if forced with data-theme="dark" */
-[data-theme="dark"] {
-	--primary: #92C29A;
-	--primary-hover: #1D7564;
-	--primary-focus: #166749;
-	--primary-inverse: #093B44;
-  --background-color: none;
-	/* --background-color: #0F2739; */
-}
+	/* Red (Common styles) */
+	:root {
+		--form-element-active-border-color: var(--primary);
+		--form-element-focus-color: var(--primary-focus);
+		--switch-color: var(--primary-inverse);
+		--switch-checked-background-color: var(--primary);
+	}
 
-/* Red (Common styles) */
-:root {
-  --form-element-active-border-color: var(--primary);
-  --form-element-focus-color: var(--primary-focus);
-  --switch-color: var(--primary-inverse);
-  --switch-checked-background-color: var(--primary);
-}
+	*/::-webkit-scrollbar {
+		background: var(--card-background-color);
+		border-radius: 0% 10% 10% 0%;
+	}
 
-::-webkit-scrollbar {
-	background: var(--card-background-color);
-	border-radius: 0% 10% 10% 0%;
-}
+	::-webkit-scrollbar-thumb {
+		background: var(--primary-hover);
+		border-radius: 10px;
+	}
 
-::-webkit-scrollbar-thumb {
-	background: var(--primary-hover);
-	border-radius: 10px;
-}
-
-body {
-	background-color: rgba(0.1, 0.1, 0.1, 0.7);
-}
-
+	body {
+		background-color: rgba(0.1, 0.1, 0.1, 0.7);
+	}
 </style>
