@@ -176,18 +176,18 @@ async fn main() {
         .invoke_handler(tauri::generate_handler![submit_claim, get_claim, login, show_main])
         .setup(move |app| {
 
-            // let handle = app.handle();
+            let handle = app.handle();
 
-            // tauri::async_runtime::spawn(async move {
-            //     match updater::builder(handle).check().await {
-            //         Ok(update) => {
-            //             dbg!(update.latest_version());
-            //         },
-            //         Err(e) => {
-            //             println!("Failed to get update : {}", e)
-            //         },
-            //     }
-            // });
+            tauri::async_runtime::spawn(async move {
+                match tauri::updater::builder(handle).check().await {
+                    Ok(update) => {
+                        println!("Latest Version : {}", update.latest_version());
+                    },
+                    Err(e) => {
+                        println!("Failed to get update : {}", e)
+                    },
+                }
+            });
 
             let window = app.get_window("main").unwrap();
             window_shadows::set_shadow(&window, true).expect("Couldn't set shadow on window!");
