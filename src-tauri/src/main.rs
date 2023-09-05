@@ -32,7 +32,7 @@ async fn submit_claim(
     let sp_retrieve: State<SPRetrieveState> = app_handle.state();
 
     let qb_ref = qb.0.lock().await;
-    let qb_ref = qb_ref.as_ref().unwrap();
+    let qb_ref = qb_ref.as_ref().ok_or("Couldn't get QB Lock!".to_owned())?;
 
     let (qb_invoice, claim_number) = if let Some(data) = &claim.claim_number {
         (None, data.clone())
@@ -112,7 +112,7 @@ async fn get_claim(
 #[tauri::command]
 async fn login(app_handle: AppHandle, token: String) -> Result<()> {
     if let Some(login) = app_handle.get_window("login") {
-        login.close().unwrap();
+        login.close().expect("Couldn't close login window!");
     }
 
     let qb: State<QBState> = app_handle.state();
@@ -139,8 +139,12 @@ async fn login(app_handle: AppHandle, token: String) -> Result<()> {
 
 #[tauri::command]
 async fn show_main(app_handle: AppHandle) -> Result<()> {
-    let window = app_handle.get_window("main").ok_or::<String>("No Main window found!".into())?;
-    window.show().map_err(|e| e.to_string())?;
+    let state: State<QBState> = app_handle.state();
+    if state.0.lock().await.is_some() {
+        let window = app_handle.get_window("main").ok_or::<String>("No Main window found!".into())?;
+        window.show().map_err(|e| e.to_string())?;
+    }
+
     Ok(())
 }
 
@@ -175,20 +179,6 @@ async fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![submit_claim, get_claim, login, show_main])
         .setup(move |app| {
-
-            let handle = app.handle();
-
-            tauri::async_runtime::spawn(async move {
-                match tauri::updater::builder(handle).check().await {
-                    Ok(update) => {
-                        println!("Latest Version : {}", update.latest_version());
-                    },
-                    Err(e) => {
-                        println!("Failed to get update : {}", e)
-                    },
-                }
-            });
-
             let window = app.get_window("main").unwrap();
             window_shadows::set_shadow(&window, true).expect("Couldn't set shadow on window!");
 
@@ -224,12 +214,12 @@ fn handle_window_event(event: GlobalWindowEvent) {
 }
 
 fn handle_close_requested(window: &tauri::Window, state: State<QBState>) {
-    if window.label() == "login" {
-        if let Some(main) = window.get_window("main") {
+    match window.label() {
+        "login" => if let Some(main) = window.get_window("main") {
             main.close().expect("Could not close main window");
-        }
-    } else {
-        close(state.inner());
+        },
+        "main" => close(state.inner()),
+        _ => (),
     }
 
     window.close().unwrap();
