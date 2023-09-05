@@ -12,7 +12,7 @@ use quick_oxibooks::{
     actions::QBCreate, client::Quickbooks, qb_query, types::{Customer, Invoice}, Environment
 };
 use service_poxi::{ClaimHandler, Retreive, Submit};
-use tauri::{generate_context, AppHandle, Manager, State, WindowEvent};
+use tauri::{generate_context, AppHandle, GlobalWindowEvent, Manager, State, WindowEvent};
 use util::*;
 
 struct QBState(Mutex<Option<Quickbooks>>);
@@ -115,13 +115,6 @@ async fn login(app_handle: AppHandle, token: String) -> Result<()> {
         login.close().unwrap();
     }
 
-    app_handle
-        .get_window("main")
-        .expect("Could not get main window from app handle")
-        .show()
-        .expect("Could not reveal the main window");
-    println!("Main window shown");
-
     let qb: State<QBState> = app_handle.state();
     *qb.0.lock().await = Some(
         Quickbooks::new_from_token(
@@ -134,6 +127,20 @@ async fn login(app_handle: AppHandle, token: String) -> Result<()> {
         .map_err(|e| e.to_string())?,
     );
 
+    app_handle
+        .get_window("main")
+        .expect("Could not get main window from app handle")
+        .show()
+        .expect("Could not reveal the main window");
+    println!("Main window shown");
+
+    Ok(())
+}
+
+#[tauri::command]
+async fn show_main(app_handle: AppHandle) -> Result<()> {
+    let window = app_handle.get_window("main").ok_or::<String>("No Main window found!".into())?;
+    window.show().map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -166,13 +173,28 @@ async fn main() {
     let cache_hit = qb.is_some();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![submit_claim, get_claim, login])
+        .invoke_handler(tauri::generate_handler![submit_claim, get_claim, login, show_main])
         .setup(move |app| {
+
+            // let handle = app.handle();
+
+            // tauri::async_runtime::spawn(async move {
+            //     match updater::builder(handle).check().await {
+            //         Ok(update) => {
+            //             dbg!(update.latest_version());
+            //         },
+            //         Err(e) => {
+            //             println!("Failed to get update : {}", e)
+            //         },
+            //     }
+            // });
+
             let window = app.get_window("main").unwrap();
+            window_shadows::set_shadow(&window, true).expect("Couldn't set shadow on window!");
+
             if cache_hit {
                 let login = app.get_window("login").unwrap();
                 login.close().expect("Could not close login window");
-                window.show().expect("Could not show main window");
             }
 
             Ok(())
@@ -180,31 +202,37 @@ async fn main() {
         .manage(QBState(qb.into()))
         .manage(SPRetrieveState(ClaimHandler::<Retreive>::new()))
         .manage(SPSubmitState(ClaimHandler::<Submit>::new()))
-        .on_window_event(|event| {
-            let window = event.window();
-            let state: State<QBState> = window.state();
-
-            match event.event() {
-                WindowEvent::CloseRequested { api, .. } => {
-                    api.prevent_close();
-                    close(state.inner());
-                    if window.label() == "login" {
-                        let Some(main) = window.get_window("main") else {
-                            return;
-                        };
-                        main.close().expect("Could not close main window when login window closed");
-                    }
-                    window.close().unwrap();
-                }
-                WindowEvent::Destroyed => {
-                    close(state.inner());
-                }
-                _ => (),
-            }
-
-        })
+        .on_window_event(handle_window_event)
         .run(generate_context!())
         .expect("error while running tauri application");
+}
+
+fn handle_window_event(event: GlobalWindowEvent) {
+    let window = event.window();
+    let state = window.state();
+
+    match event.event() {
+        WindowEvent::CloseRequested { api, .. } => {
+            api.prevent_close();
+            handle_close_requested(&window, state);
+        }
+        WindowEvent::Destroyed if window.label() == "main" => {
+            close(state.inner());
+        }
+        _ => {}
+    }
+}
+
+fn handle_close_requested(window: &tauri::Window, state: State<QBState>) {
+    if window.label() == "login" {
+        if let Some(main) = window.get_window("main") {
+            main.close().expect("Could not close main window");
+        }
+    } else {
+        close(state.inner());
+    }
+
+    window.close().unwrap();
 }
 
 fn close(qb: &QBState) {
