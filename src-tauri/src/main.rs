@@ -112,7 +112,7 @@ async fn get_claim(
 #[tauri::command]
 async fn login(app_handle: AppHandle, token: String) -> Result<()> {
     if let Some(login) = app_handle.get_window("login") {
-        login.close().unwrap();
+        login.close().expect("Couldn't close login window!");
     }
 
     let qb: State<QBState> = app_handle.state();
@@ -139,8 +139,12 @@ async fn login(app_handle: AppHandle, token: String) -> Result<()> {
 
 #[tauri::command]
 async fn show_main(app_handle: AppHandle) -> Result<()> {
-    let window = app_handle.get_window("main").ok_or::<String>("No Main window found!".into())?;
-    window.show().map_err(|e| e.to_string())?;
+    let state: State<QBState> = app_handle.state();
+    if state.0.lock().await.is_some() {
+        let window = app_handle.get_window("main").ok_or::<String>("No Main window found!".into())?;
+        window.show().map_err(|e| e.to_string())?;
+    }
+
     Ok(())
 }
 
@@ -224,12 +228,12 @@ fn handle_window_event(event: GlobalWindowEvent) {
 }
 
 fn handle_close_requested(window: &tauri::Window, state: State<QBState>) {
-    if window.label() == "login" {
-        if let Some(main) = window.get_window("main") {
+    match window.label() {
+        "login" => if let Some(main) = window.get_window("main") {
             main.close().expect("Could not close main window");
-        }
-    } else {
-        close(state.inner());
+        },
+        "main" => close(state.inner()),
+        _ => (),
     }
 
     window.close().unwrap();
