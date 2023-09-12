@@ -26,12 +26,10 @@
         customer_first_name: yup
             .string()
             .trim()
-            .min(3)
             .required("Customer First Name is required"),
         customer_last_name: yup
             .string()
             .trim()
-            .min(3)
             .required("Customer Last Name is required"),
         customer_address_1: yup
             .string()
@@ -44,13 +42,14 @@
         customer_zip_code: yup
             .string()
             .trim()
+            .matches("^d{5}$", "Zip Code must be a 5 digit number")
             .required("Customer Zip Code is required"),
         customer_email: yup.string().email(),
         customer_phone_number: yup
             .string()
             .matches(
-                "^d{10}$",
-                "Phone number must consist of ten digits, no dashes, periods, or other punctuation is allowed"
+                "^[+]?[(]?[0-9]{3}[)]?[-s. ]?[0-9]{3}[-s. ]?[0-9]{4}$",
+                "Not a valid phone number, try this format: (XXX)-XXX-XXXX"
             )
             .required("Customer Phone Number is required"),
         product_code: yup
@@ -58,11 +57,11 @@
             .trim()
             .min(8)
             .max(10)
-            .required("Appliance Product Code is required"),
+            .required("Appliance Product Code is required"), // TODO Make regex check for this
+        // ^([TD][CR]|FF|SF)[357]00[34578]W[ENG]$
         serial_number: yup
-            .number()
-            .min(10)
-            .max(10)
+            .string()
+            .matches("^d{10}$", "Serial Number must be a 10 digit number")
             .required("Appliance Serial Number is required"),
         model_number: yup
             .string()
@@ -72,8 +71,8 @@
         purchase_date: yup
             .date()
             .required("Appliance Purchase Date is required"),
-        requested_date: yup.date().required("Service Request Date is required"),
-        completed_date: yup
+        date_requested: yup.date().required("Service Request Date is required"),
+        date_completed: yup
             .date()
             .required("Service Completed Date is required"),
         miles_traveled: yup
@@ -81,23 +80,17 @@
             .min(1)
             .max(999)
             .required("Miles Traveled is required"),
-        repair_code: yup
-            .number()
-            .min(1)
-            .max(999)
-            .required("Repair Code is required"),
-        defect_code: yup
-            .number()
-            .min(1)
-            .max(999)
-            .required("Defect Code is required"),
+        repair_code: yup.number().min(1, "Must select a Repair Code").required("Repair Code is required"),
+        defect_code: yup.number().min(1, "Must select a Defect Code").required("Defect Code is required"),
         issue_description: yup
             .string()
             .trim()
+            .length(10, "Issue Description is too short, add more details")
             .required("Issue Descripiton is required"),
         service_performed: yup
             .string()
             .trim()
+            .length(10, "Service Preformed is too short, add more details")
             .required("Service Performed is required"),
         parts: yup.array().of(partSchema),
     });
@@ -125,6 +118,7 @@
 
         try {
             await invoiceSchema.validate(invoice, { abortEarly: false });
+            invoice.customer_phone_number = invoice.customer_phone_number.replaceAll(/[^\d]/g, "");
             const customer = await invoke("submit_claim", {
                 claim: invoice,
                 getSb,
@@ -149,6 +143,10 @@
 
         if (errors) {
             console.error(errors);
+        } else {
+            invoice = {
+                parts: []
+            }
         }
     }
 
@@ -304,7 +302,6 @@
                         /></label
                     >
                 </div>
-                <!-- TODO Fix all this ugh gross -->
                 <Codes invoice />
                 <label
                     >Description of Issue:<textarea
@@ -355,24 +352,27 @@
                 {/if}
             {/if}
             <div class="form-section">
-                <fieldset>
-                    <label for="quickbooks">
-                        Quickbooks
-                        <input
-                            type="checkbox"
-                            id="quickbooks"
-                            bind:checked={getQb}
-                        />
-                    </label>
-                    <label for="servicepower">
-                        Servicepower
-                        <input
-                            type="checkbox"
-                            id="servicepower"
-                            bind:checked={getSb}
-                        />
-                    </label>
-                </fieldset>
+                <div class="submit-select">
+                    <span>Submit To:</span>
+                    <fieldset>
+                        <label for="quickbooks">
+                            Quickbooks
+                            <input
+                                type="checkbox"
+                                id="quickbooks"
+                                bind:checked={getQb}
+                            />
+                        </label>
+                        <label for="servicepower">
+                            Servicepower
+                            <input
+                                type="checkbox"
+                                id="servicepower"
+                                bind:checked={getSb}
+                            />
+                        </label>
+                    </fieldset>
+                </div>
                 {#if !getQb && getSb}
                     <label for="claim_number"
                         >Claim Number (Required): <input
@@ -416,6 +416,20 @@
     button:active {
         transform: scale(0.97);
     }
+    .submit-select {
+        display: flex;
+        flex-direction: column;
+        /* align-items: center; */
+        justify-content: space-evenly;
+        align-items: center;
+    }
+    .submit-select fieldset {
+        display: flex;
+    }
+    .submit-select label {
+        padding-left: 10vw;
+        padding-right: 10vw;
+    }
     .form-section {
         margin: 10px auto;
         width: 95vw;
@@ -425,10 +439,6 @@
     }
     .form-section textarea {
         resize: none;
-    }
-    .form-section fieldset {
-        display: flex;
-        justify-content: space-evenly;
     }
     h2 {
         text-align: center;
