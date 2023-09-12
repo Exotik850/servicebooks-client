@@ -42,7 +42,7 @@
         customer_zip_code: yup
             .string()
             .trim()
-            .matches("^d{5}$", "Zip Code must be a 5 digit number")
+            .matches("^\d{5}$", "Zip Code must be a 5 digit number")
             .required("Customer Zip Code is required"),
         customer_email: yup.string().email(),
         customer_phone_number: yup
@@ -61,7 +61,7 @@
         // ^([TD][CR]|FF|SF)[357]00[34578]W[ENG]$
         serial_number: yup
             .string()
-            .matches("^d{10}$", "Serial Number must be a 10 digit number")
+            .matches("^\d{10}$", "Serial Number must be a 10 digit number")
             .required("Appliance Serial Number is required"),
         model_number: yup
             .string()
@@ -80,17 +80,23 @@
             .min(1)
             .max(999)
             .required("Miles Traveled is required"),
-        repair_code: yup.number().min(1, "Must select a Repair Code").required("Repair Code is required"),
-        defect_code: yup.number().min(1, "Must select a Defect Code").required("Defect Code is required"),
+        repair_code: yup
+            .number()
+            .min(1, "Must select a Repair Code")
+            .required("Repair Code is required"),
+        defect_code: yup
+            .number()
+            .min(1, "Must select a Defect Code")
+            .required("Defect Code is required"),
         issue_description: yup
             .string()
             .trim()
-            .length(10, "Issue Description is too short, add more details")
-            .required("Issue Descripiton is required"),
+            // .length(10, "Issue Description is too short, add more details")
+            .required("Issue Description is required"),
         service_performed: yup
             .string()
             .trim()
-            .length(10, "Service Preformed is too short, add more details")
+            // .length(10, "Service Performed is too short, add more details")
             .required("Service Performed is required"),
         parts: yup.array().of(partSchema),
     });
@@ -118,7 +124,8 @@
 
         try {
             await invoiceSchema.validate(invoice, { abortEarly: false });
-            invoice.customer_phone_number = invoice.customer_phone_number.replaceAll(/[^\d]/g, "");
+            invoice.customer_phone_number =
+                invoice.customer_phone_number.replaceAll(/[^\d]/g, "");
             const customer = await invoke("submit_claim", {
                 claim: invoice,
                 getSb,
@@ -145,25 +152,22 @@
             console.error(errors);
         } else {
             invoice = {
-                parts: []
-            }
+                parts: [],
+            };
         }
     }
 
     let step = 0;
-    let prevStep;
     let numSteps = 3;
 
     function next() {
         if (step < numSteps) {
-            prevStep = step;
             step++;
         }
     }
 
     function prev() {
         if (step > 0) {
-            prevStep = step;
             step--;
         }
     }
@@ -302,7 +306,10 @@
                         /></label
                     >
                 </div>
-                <Codes invoice />
+                <Codes
+                    bind:defect_code={invoice.defect_code}
+                    bind:repair_code={invoice.repair_code}
+                />
                 <label
                     >Description of Issue:<textarea
                         rows="4"
@@ -322,33 +329,29 @@
         </Transition>
     {:else if step === 3}
         <Transition>
-            <h2>Parts Used</h2>
             <div class="form-section">
+                <h2>Parts Used</h2>
                 <Parts {invoice} />
             </div>
             {#if loading}
                 <article aria-busy="true" />
             {:else if errors != null}
                 {#if typeof errors === "object"}
-                    {#each Object.entries(errors) as [key, error]}
-                        <div color="danger">
-                            <input
-                                type="text"
-                                placeholder={key}
-                                readonly
-                                aria-invalid="true"
-                            />
-                        </div>
-                    {/each}
-                {:else}
-                    <div color="danger">
+                    {#each Object.entries(errors) as [key, _]}
                         <input
                             type="text"
-                            placeholder={errors}
+                            placeholder={key}
                             readonly
                             aria-invalid="true"
                         />
-                    </div>
+                    {/each}
+                {:else}
+                    <input
+                        type="text"
+                        placeholder={errors}
+                        readonly
+                        aria-invalid="true"
+                    />
                 {/if}
             {/if}
             <div class="form-section">

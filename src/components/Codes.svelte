@@ -1,14 +1,11 @@
-<script>
-    /**
-     * @type {{ defect_code: any; repair_code: any; }}
-     */
-     export let invoice;
-
+<script lang=ts>
+     export let defect_code: number;
+     export let repair_code: number;
 </script>
 
 <div class="grid">
     <label
-        >Defect Code: <select bind:value={invoice.defect_code}>
+        >Defect Code: <select bind:value={defect_code}>
             <option value="0" selected />
             <option value="13">Not heating</option>
             <option value="14">Over heating</option>
@@ -27,7 +24,7 @@
     </label>
     <label
         >Repair/Job Code: <select
-            bind:value={invoice.repair_code}
+            bind:value={repair_code}
         >
             <option value="0" selected />
             <option value="1">Blower Wheel / Motor</option>
@@ -119,3 +116,14 @@
         </select>
     </label>
 </div>
+
+<style>
+    .grid {
+        display: flex;
+        flex: 1 1 auto;
+    }
+    .grid label {
+        margin: auto;
+        width: 50%;
+    }
+</style>

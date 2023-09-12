@@ -11,7 +11,7 @@ use models::*;
 use quick_oxibooks::{
     actions::QBCreate, client::Quickbooks, qb_query, types::Invoice, Environment,
 };
-use service_poxi::{ClaimHandler, Retreive, Submit};
+use service_poxi::{ClaimHandler, Retreive, Submit, ClaimObject};
 use tauri::{generate_context, AppHandle, GlobalWindowEvent, Manager, State, WindowEvent};
 use util::*;
 
@@ -34,7 +34,7 @@ async fn submit_claim(
     let qb_ref = qb.0.lock().await;
     let qb_ref = qb_ref.as_ref().ok_or("Couldn't get QB Lock!".to_owned())?;
 
-    let (qb_invoice, claim_number) = if let Some(data) = &claim.claim_number {
+    let (mut qb_invoice, claim_number) = if let Some(data) = &claim.claim_number {
         (None, data.clone())
     } else {
         let doc_number = generate_claim_number(qb_ref)
@@ -57,6 +57,16 @@ async fn submit_claim(
     } else {
         None
     };
+
+    // if let (Some(claim), Some(qb_inv)) = (sp_claim.as_ref(), qb_invoice.as_mut()) {
+    //     let cn = claim.claims;
+    //     match qb_inv.customer_memo.as_mut() {
+    //         Some(memo) => {
+
+    //         },
+    //         None => ()
+    //     }
+    // }
 
     Ok(HAInvoice {
         qb_invoice,
