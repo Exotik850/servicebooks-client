@@ -9,7 +9,7 @@
   },
   "package": {
     "productName": "servicebooks-client",
-    "version": "0.1.5"
+    "version": "0.1.6"
   },
   "tauri": {
     "updater": {
