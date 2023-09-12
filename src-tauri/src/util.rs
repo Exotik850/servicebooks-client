@@ -1,7 +1,13 @@
 use quick_oxibooks::{
-    actions::QBCreate, client::Quickbooks, error::APIError, qb_query, types::{
-        common::{CustomField, NtRef, TxnTaxDetail}, Invoice, Item, LineBuilder, LineDetail, SalesItemLineDetailBuilder, TaxLineDetail
-    }
+    actions::QBCreate,
+    client::Quickbooks,
+    error::APIError,
+    qb_query,
+    types::{
+        common::{CustomField, NtRef, TxnTaxDetail, Email, PhoneNumber, Addr},
+        Customer, Invoice, Item, LineBuilder, LineDetail, SalesItemLineDetailBuilder,
+        TaxLineDetail,
+    },
 };
 use service_poxi::{Claim, ClaimBuilder, ClaimHandler, ClaimUnion, Retreive, Submit};
 
@@ -9,6 +15,39 @@ use crate::models::{InputInvoice, InputPart};
 
 pub const HA_MANUFACTURER: &str = "ALLIANCE - SPEED QUEEN";
 pub const HA_MODEL_BRAND: &str = "SPEED QUEEN";
+
+pub(crate) async fn get_qb_customer(
+    claim: &InputInvoice,
+    qb: &Quickbooks,
+) -> Result<Customer, String> {
+    if let Ok(cust) = qb_query!(
+        qb,
+        Customer | given_name = &claim.customer_first_name,
+        family_name = &claim.customer_last_name
+    ) {
+        return Ok(cust);
+    }
+
+    Customer::new()
+    .given_name(claim.customer_first_name.clone())
+    .family_name(claim.customer_last_name.clone())
+    .bill_addr(Addr {
+        city: Some(claim.customer_city.clone()),
+        country: Some("USA".into()),
+        country_sub_division_code: Some(claim.customer_state.clone()),
+        line1: Some(claim.customer_address_1.clone()),
+        postal_code: Some(claim.customer_zip_code.clone()),
+        id: None
+    })
+    .primary_email_addr(Email {
+        address: Some(claim.customer_email.clone())
+    })
+    .primary_phone(PhoneNumber {
+        free_form_number: Some(claim.customer_phone_number.clone())
+    })
+    .build()
+    .map_err(|e| e.to_string())
+}
 
 pub(crate) fn default_qb_invoice(
     customer_ref: NtRef,
@@ -187,7 +226,7 @@ pub(crate) async fn send_sp(
                 acc += &next.message;
                 acc
             });
-        return Err(format!("Errors upon submitting servicepower claim {}", msg));
+        return Err(format!("Errors upon submitting servicepower claim : {}", msg));
     }
 
     let sent = sp_claim_sub.claims.remove(0);

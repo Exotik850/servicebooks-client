@@ -9,7 +9,7 @@ use blocking::Block;
 use futures::lock::Mutex;
 use models::*;
 use quick_oxibooks::{
-    actions::QBCreate, client::Quickbooks, qb_query, types::{Customer, Invoice}, Environment
+    actions::QBCreate, client::Quickbooks, qb_query, types::Invoice, Environment,
 };
 use service_poxi::{ClaimHandler, Retreive, Submit};
 use tauri::{generate_context, AppHandle, GlobalWindowEvent, Manager, State, WindowEvent};
@@ -41,12 +41,7 @@ async fn submit_claim(
             .await
             .map_err(|e| e.to_string())?;
 
-        let cust = qb_query!(
-            qb_ref,
-            Customer | given_name = &claim.customer_first_name,
-            family_name = &claim.customer_last_name
-        )
-        .map_err(|e| e.to_string())?;
+        let cust = get_qb_customer(&claim, qb_ref).await?;
 
         let items = get_qb_items(&claim.parts, qb_ref).await?;
 
@@ -80,7 +75,9 @@ async fn get_claim(
     let qb: State<QBState> = app_handle.state();
 
     let qb_ref = qb.0.lock().await;
-    let qb_ref = qb_ref.as_ref().ok_or("Could not grab lock on QB State!".to_string())?;
+    let qb_ref = qb_ref
+        .as_ref()
+        .ok_or("Could not grab lock on QB State!".to_string())?;
 
     let qb_invoice = match get_qb {
         true => Some(
@@ -141,7 +138,9 @@ async fn login(app_handle: AppHandle, token: String) -> Result<()> {
 async fn show_main(app_handle: AppHandle) -> Result<()> {
     let state: State<QBState> = app_handle.state();
     if state.0.lock().await.is_some() {
-        let window = app_handle.get_window("main").ok_or::<String>("No Main window found!".into())?;
+        let window = app_handle
+            .get_window("main")
+            .ok_or::<String>("No Main window found!".into())?;
         window.show().map_err(|e| e.to_string())?;
     }
 
@@ -177,7 +176,12 @@ async fn main() {
     let cache_hit = qb.is_some();
 
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![submit_claim, get_claim, login, show_main])
+        .invoke_handler(tauri::generate_handler![
+            submit_claim,
+            get_claim,
+            login,
+            show_main
+        ])
         .setup(move |app| {
             let window = app.get_window("main").expect("No main window on startup");
             window_shadows::set_shadow(&window, true).expect("Couldn't set shadow on window!");
@@ -204,7 +208,7 @@ fn handle_window_event(event: GlobalWindowEvent) {
     match event.event() {
         WindowEvent::CloseRequested { api, .. } => {
             api.prevent_close();
-            handle_close_requested(&window, state);
+            handle_close_requested(window, state);
         }
         WindowEvent::Destroyed if window.label() == "main" => {
             close(state.inner());
@@ -215,9 +219,11 @@ fn handle_window_event(event: GlobalWindowEvent) {
 
 fn handle_close_requested(window: &tauri::Window, state: State<QBState>) {
     match window.label() {
-        "login" => if let Some(main) = window.get_window("main") {
-            main.close().expect("Could not close main window");
-        },
+        "login" => {
+            if let Some(main) = window.get_window("main") {
+                main.close().expect("Could not close main window");
+            }
+        }
         "main" => close(state.inner()),
         _ => (),
     }
