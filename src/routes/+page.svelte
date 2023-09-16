@@ -3,7 +3,7 @@
 
     import ClaimSearch from "../components/ClaimSearch.svelte";
     import TitleBar from "../components/TitleBar.svelte";
-    import WarrantyForm from "../components/WarrantyForm.svelte";
+    import WarrantyForm from "../components/WarrantyForm/WarrantyForm.svelte";
     import Transition from "../components/Transition.svelte";
     import { onMount } from "svelte";
     import { invoke } from "@tauri-apps/api";
@@ -39,7 +39,7 @@
         </Transition>
     {:else if state === State.CLAIM_SEARCH}
         <Transition>
-            <ClaimSearch />
+            <ClaimSearch /> 
         </Transition>
     {/if}
 </div>

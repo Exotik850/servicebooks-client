@@ -5,6 +5,6 @@ export default defineConfig({
 	plugins: [sveltekit()],
 	server:{
 		port:5471,
-		strictPort:false,
+		strictPort:true,
 	},
 });
