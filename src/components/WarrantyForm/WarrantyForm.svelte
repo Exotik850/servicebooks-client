@@ -9,6 +9,7 @@
   import Codes from "./Codes.svelte";
   import { ValidationError } from "yup";
   import { invoiceSchema } from "./invoiceSchema";
+  import { displayObject } from "../displayObject"
 
   const progress = tweened(1, {
     duration: 400,
@@ -24,6 +25,8 @@
   let errors = null;
   let getQb = false;
   let getSb = false;
+  let loading = false;
+  let success = null;
 
   let notSubmittable;
   $: notSubmittable = (!getQb && !getSb) || (!getQb && !invoice.claim_number);
@@ -32,21 +35,20 @@
     invoice.claim_number = null;
   }
 
-  let loading = false;
-
   async function submitClaim() {
     loading = true;
+    success = null
     errors = {};
     console.log("Trying submit");
 
     try {
       await invoiceSchema.validate(invoice, { abortEarly: false });
       console.log("Validated");
-      invoice.customer_phone_number = invoice.customer_phone_number.replaceAll(
+      invoice.phone_number = invoice.phone_number.replaceAll(
         /[^\d]/g,
         ""
       );
-      const customer = await invoke("submit_claim", {
+      success = await invoke("submit_claim", {
         claim: invoice,
         getSb,
       });
@@ -154,8 +156,6 @@
         <label
           >Serial Number: <input
             bind:value={invoice.serial_number}
-            type="number"
-            max="999999999"
           /></label
         >
         <label
@@ -218,22 +218,31 @@
         <h2>Parts Used</h2>
         <Parts {invoice} />
       </div>
-      {#if loading}
-        <article aria-busy="true" />
-      {:else if errors != null}
-        {#if typeof errors === "object"}
-          {#each Object.entries(errors) as [key, _]}
-            <input type="text" placeholder={key} readonly aria-invalid="true" />
-          {/each}
-        {:else}
-          <input
-            type="text"
-            placeholder={errors}
-            readonly
-            aria-invalid="true"
-          />
+      <div style="margin: auto; width: 95vw">
+        {#if loading}
+          <article aria-busy="true" />
+        {:else if success != null}
+          <article style="background-color: green;">
+            <h1>Success!</h1>
+            {@html displayObject(success)}
+          </article>
+        {:else if errors != null}
+          <article style="background-color: red;">
+            {#if typeof errors === "object"}
+              {#each Object.entries(errors) as [key, _]}
+                <input type="text" placeholder={key} readonly aria-invalid="true" />
+              {/each}
+            {:else}
+              <input
+                type="text"
+                placeholder={errors}
+                readonly
+                aria-invalid="true"
+              />
+            {/if}
+          </article>
         {/if}
-      {/if}
+      </div>
       <div class="form-section">
         <div class="submit-select">
           <span>Submit To:</span>

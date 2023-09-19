@@ -12,14 +12,14 @@ pub struct InputPart {
 #[derive(Deserialize, Serialize, Default)]
 #[serde(default)]
 pub struct InputInvoice {
-    pub customer_first_name: String,
-    pub customer_last_name: String,
-    pub customer_address_1: String,
-    pub customer_state: String,
-    pub customer_city: String,
-    pub customer_zip_code: String,
-    pub customer_email: String,
-    pub customer_phone_number: String,
+    pub first_name: String,
+    pub last_name: String,
+    pub address_1: String,
+    pub state: String,
+    pub city: String,
+    pub zip_code: String,
+    pub email: String,
+    pub phone_number: String,
     pub claim_number: Option<String>,
     pub product_code: String,
     pub serial_number: String,

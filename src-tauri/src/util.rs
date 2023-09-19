@@ -22,28 +22,28 @@ pub(crate) async fn get_qb_customer(
 ) -> Result<Customer, String> {
     if let Ok(cust) = qb_query!(
         qb,
-        Customer | given_name = &claim.customer_first_name,
-        family_name = &claim.customer_last_name
+        Customer | given_name = &claim.first_name,
+        family_name = &claim.last_name
     ) {
         return Ok(cust);
     }
 
     Customer::new()
-    .given_name(claim.customer_first_name.clone())
-    .family_name(claim.customer_last_name.clone())
+    .given_name(claim.first_name.clone())
+    .family_name(claim.last_name.clone())
     .bill_addr(Addr {
-        city: Some(claim.customer_city.clone()),
+        city: Some(claim.city.clone()),
         country: Some("USA".into()),
-        country_sub_division_code: Some(claim.customer_state.clone()),
-        line1: Some(claim.customer_address_1.clone()),
-        postal_code: Some(claim.customer_zip_code.clone()),
+        country_sub_division_code: Some(claim.state.clone()),
+        line1: Some(claim.address_1.clone()),
+        postal_code: Some(claim.zip_code.clone()),
         id: None
     })
     .primary_email_addr(Email {
-        address: Some(claim.customer_email.clone())
+        address: Some(claim.email.clone())
     })
     .primary_phone(PhoneNumber {
-        free_form_number: Some(claim.customer_phone_number.clone())
+        free_form_number: Some(claim.phone_number.clone())
     })
     .build()
     .map_err(|e| e.to_string())
@@ -137,13 +137,13 @@ pub(crate) fn default_sp_claim(
         date_completed,
         date_requested,
         parts,
-        customer_address_1,
-        customer_city,
-        customer_email,
-        customer_first_name,
-        customer_last_name,
-        customer_state,
-        customer_zip_code,
+        address_1,
+        city,
+        email,
+        first_name,
+        last_name,
+        state,
+        zip_code,
         defect_code,
         repair_code,
         model_number,
@@ -177,19 +177,19 @@ pub(crate) fn default_sp_claim(
         .model_number(model_number)
         .eia_defect_or_complaint_code(defect_code)
         .serial_number(serial_number)
-        .customer_city(customer_city)
+        .customer_city(city)
         .date_purchased(purchase_date.parse::<u32>().map_err(|e| e.to_string())?)
         .date_completed(completed_date.parse::<u32>().map_err(|e| e.to_string())?)
         .date_requested(requested_date.parse::<u32>().map_err(|e| e.to_string())?)
-        .customer_first_name(customer_first_name)
-        .customer_last_name(customer_last_name)
-        .customer_email(customer_email)
+        .customer_first_name(first_name)
+        .customer_last_name(last_name)
+        .customer_email(email)
         .travel_miles(miles_traveled)
         .eia_repair_code_1(repair_code)
         .service_performed_description(service_performed)
-        .customer_address_1(customer_address_1)
-        .customer_state(customer_state)
-        .customer_zip_code(customer_zip_code)
+        .customer_address_1(address_1)
+        .customer_state(state)
+        .customer_zip_code(zip_code)
         .customer_phone(pn)
         .defect_or_complaint_description(issue_description)
         .parts(parts)
@@ -203,7 +203,7 @@ pub(crate) async fn send_sp(
     sp_submit: &ClaimHandler<Submit>,
     sp_retrieve: &ClaimHandler<Retreive>,
 ) -> Result<ClaimUnion, String> {
-    let Ok(phone_number) = claim.customer_phone_number.parse::<u64>() else {
+    let Ok(phone_number) = claim.phone_number.parse::<u64>() else {
         return Err("Could not parse phone number, do not use anything other than numbers in the phone number field".into());
     };
 

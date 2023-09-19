@@ -1,9 +1,9 @@
 import * as yup from "yup";
 
 const partSchema = yup.object({
-  part_number: yup.string().trim().min(1).required(),
-  invoice_number: yup.number().required(),
-  distributor_number: yup.number().required(),
+  part_number: yup.string().trim().required("Part Number missing from Part"),
+  invoice_number: yup.number().required("Invoice Number is required for every part"),
+  distributor_number: yup.number().required("Distributor is required for every part"),
 });
 
 const customerSchema = yup.object({
