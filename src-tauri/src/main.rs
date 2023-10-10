@@ -1,23 +1,20 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod blocking;
 mod models;
 mod util;
 
-use blocking::Block;
 use futures::lock::Mutex;
 use models::*;
 use quick_oxibooks::{
-    actions::QBCreate, client::Quickbooks, qb_query, types::Invoice, Environment,
+    actions::QBCreate, client::Quickbooks, qb_query, types::{Invoice, QBToRef}, Environment
 };
-use service_poxi::{ClaimHandler, Retreive, Submit, ClaimObject};
+use service_poxi::ClaimHandler;
 use tauri::{generate_context, AppHandle, GlobalWindowEvent, Manager, State, WindowEvent};
 use util::*;
 
 struct QBState(Mutex<Option<Quickbooks>>);
-struct SPRetrieveState(ClaimHandler<Retreive>);
-struct SPSubmitState(ClaimHandler<Submit>);
+struct SPState(ClaimHandler);
 
 type Result<T> = std::result::Result<T, String>;
 
@@ -28,8 +25,7 @@ async fn submit_claim(
     app_handle: AppHandle,
 ) -> Result<HAInvoice> {
     let qb: State<QBState> = app_handle.state();
-    let sp_submit: State<SPSubmitState> = app_handle.state();
-    let sp_retrieve: State<SPRetrieveState> = app_handle.state();
+    let sp: State<SPState> = app_handle.state();
 
     let qb_ref = qb.0.lock().await;
     let qb_ref = qb_ref.as_ref().ok_or("Couldn't get QB Lock!".to_owned())?;
@@ -45,28 +41,33 @@ async fn submit_claim(
 
         let items = get_qb_items(&claim.parts, qb_ref).await?;
 
-        let inv = default_qb_invoice(cust.into(), items, doc_number.clone());
+        let inv = default_qb_invoice(
+            cust.to_ref().map_err(|e| e.to_string())?,
+            items,
+            doc_number.clone(),
+        );
         (
             Some(inv.create(qb_ref).await.map_err(|e| e.to_string())?),
             doc_number,
         )
     };
 
-    let sp_claim = if get_sb {
-        Some(send_sp(claim, claim_number, &sp_submit.0, &sp_retrieve.0).await?)
-    } else {
-        None
-    };
+    let sp_claim = get_sb.then_some(send_sp(claim, claim_number, &sp.0).await?);
 
-    // if let (Some(claim), Some(qb_inv)) = (sp_claim.as_ref(), qb_invoice.as_mut()) {
-    //     let cn = claim.claims;
-    //     match qb_inv.customer_memo.as_mut() {
-    //         Some(memo) => {
-
-    //         },
-    //         None => ()
-    //     }
-    // }
+    if let (Some(claim), Some(qb_inv)) = (sp_claim.as_ref(), qb_invoice.as_mut()) {
+        if let Some(memo) = qb_inv.customer_memo.as_mut() {
+            if let Some(v) = memo.value.as_mut() {
+                *v = v.replace(
+                    "CLAIM_PLACEHOLDER",
+                    claim
+                        .claim_identifier
+                        .as_deref()
+                        .expect("No Claim Identifier in submitted claim"),
+                );
+                qb_invoice = Some(qb_inv.create(qb_ref).await.map_err(|e| e.to_string())?);
+            }
+        }
+    }
 
     Ok(HAInvoice {
         qb_invoice,
@@ -81,39 +82,34 @@ async fn get_claim(
     get_sb: bool,
     app_handle: AppHandle,
 ) -> Result<HAInvoice> {
-    let retreive_handler: State<SPRetrieveState> = app_handle.state();
-    let qb: State<QBState> = app_handle.state();
+    let mut out: HAInvoice = Default::default();
 
-    let qb_ref = qb.0.lock().await;
-    let qb_ref = qb_ref
-        .as_ref()
-        .ok_or("Could not grab lock on QB State!".to_string())?;
-
-    let qb_invoice = match get_qb {
-        true => Some(
+    if get_qb {
+        let qb: State<QBState> = app_handle.state();
+        let qb_ref = qb.0.lock().await;
+        let qb_ref = qb_ref
+            .as_ref()
+            .ok_or("Quickbooks manager not initialized!".to_string())?;
+        out.qb_invoice = Some(
             qb_query!(qb_ref, Invoice | doc_number = claim_number).map_err(|e| e.to_string())?,
-        ),
-        false => None,
-    };
+        );
+    }
 
-    let sp_claim = match get_sb {
-        true => Some(
+    if get_sb {
+        let retreive_handler: State<SPState> = app_handle.state();
+        out.sp_claim = Some(
             retreive_handler
                 .0
-                .get_claim(&claim_number)
+                .get_claim(claim_number)
                 .await
                 .map_err(|e| e.to_string())?
                 .claims
                 .remove(0)
                 .into(),
-        ),
-        false => None,
-    };
+        )
+    }
 
-    Ok(HAInvoice {
-        qb_invoice,
-        sp_claim,
-    })
+    Ok(out)
 }
 
 #[tauri::command]
@@ -152,6 +148,8 @@ async fn show_main(app_handle: AppHandle) -> Result<()> {
             .get_window("main")
             .ok_or::<String>("No Main window found!".into())?;
         window.show().map_err(|e| e.to_string())?;
+    } else {
+        return Err("The Quickbooks object has not been initialized".into());
     }
 
     Ok(())
@@ -204,11 +202,12 @@ async fn main() {
             Ok(())
         })
         .manage(QBState(qb.into()))
-        .manage(SPRetrieveState(ClaimHandler::<Retreive>::new()))
-        .manage(SPSubmitState(ClaimHandler::<Submit>::new()))
+        .manage(SPState(
+            ClaimHandler::new_from_env().expect("Could not find ServicePower credentials!"),
+        ))
         .on_window_event(handle_window_event)
         .run(generate_context!())
-        .expect("error while running tauri application");
+        .expect("error while starting tauri application");
 }
 
 fn handle_window_event(event: GlobalWindowEvent) {
@@ -244,9 +243,8 @@ fn handle_close_requested(window: &tauri::Window, state: State<QBState>) {
 fn close(qb: &QBState) {
     if let Some(lock) = qb.0.try_lock() {
         if let Some(qb) = lock.as_ref() {
-            qb.cleanup()
-                .wait()
-                .expect("Couldn't clean up quickbooks client");
+            let this = qb.cleanup();
+            futures::executor::block_on(this).expect("Couldn't clean up Quickbooks client");
         }
     }
 }

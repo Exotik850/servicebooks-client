@@ -1,15 +1,9 @@
 use quick_oxibooks::{
-    actions::QBCreate,
-    client::Quickbooks,
-    error::APIError,
-    qb_query,
-    types::{
-        common::{CustomField, NtRef, TxnTaxDetail, Email, PhoneNumber, Addr},
-        Customer, Invoice, Item, LineBuilder, LineDetail, SalesItemLineDetailBuilder,
-        TaxLineDetail,
-    },
+    actions::QBCreate, client::Quickbooks, error::APIError, qb_query, types::{
+        common::{Addr, CustomField, Email, NtRef, PhoneNumber, TxnTaxDetail}, Customer, Invoice, Item, LineBuilder, LineDetail, QBToRef, SalesItemLineDetailBuilder, TaxLineDetail
+    }
 };
-use service_poxi::{Claim, ClaimBuilder, ClaimHandler, ClaimUnion, Retreive, Submit};
+use service_poxi::{Claim, ClaimBuilder, ClaimHandler, ClaimUnion};
 
 use crate::models::{InputInvoice, InputPart};
 
@@ -28,25 +22,27 @@ pub(crate) async fn get_qb_customer(
         return Ok(cust);
     }
 
-    Customer::new()
-    .given_name(claim.first_name.clone())
-    .family_name(claim.last_name.clone())
-    .bill_addr(Addr {
-        city: Some(claim.city.clone()),
-        country: Some("USA".into()),
-        country_sub_division_code: Some(claim.state.clone()),
-        line1: Some(claim.address_1.clone()),
-        postal_code: Some(claim.zip_code.clone()),
-        id: None
-    })
-    .primary_email_addr(Email {
-        address: Some(claim.email.clone())
-    })
-    .primary_phone(PhoneNumber {
-        free_form_number: Some(claim.phone_number.clone())
-    })
-    .build()
-    .map_err(|e| e.to_string())
+    let cust = Customer::new()
+        .given_name(claim.first_name.clone())
+        .family_name(claim.last_name.clone())
+        .bill_addr(Addr {
+            city: Some(claim.city.clone()),
+            country: Some("USA".into()),
+            country_sub_division_code: Some(claim.state.clone()),
+            line1: Some(claim.address_1.clone()),
+            postal_code: Some(claim.zip_code.clone()),
+            id: None,
+        })
+        .primary_email_addr(Email {
+            address: Some(claim.email.clone()),
+        })
+        .primary_phone(PhoneNumber {
+            free_form_number: Some(claim.phone_number.clone()),
+        })
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    cust.create(qb).await.map_err(|e| e.to_string())
 }
 
 pub(crate) fn default_qb_invoice(
@@ -200,8 +196,7 @@ pub(crate) fn default_sp_claim(
 pub(crate) async fn send_sp(
     claim: InputInvoice,
     claim_number: String,
-    sp_submit: &ClaimHandler<Submit>,
-    sp_retrieve: &ClaimHandler<Retreive>,
+    sp: &ClaimHandler,
 ) -> Result<ClaimUnion, String> {
     let Ok(phone_number) = claim.phone_number.parse::<u64>() else {
         return Err("Could not parse phone number, do not use anything other than numbers in the phone number field".into());
@@ -209,7 +204,7 @@ pub(crate) async fn send_sp(
 
     let sp_claim = default_sp_claim(claim, phone_number, claim_number.clone())?;
 
-    let mut sp_claim_sub = sp_submit
+    let mut sp_claim_sub = sp
         .submit_claim(sp_claim.clone())
         .await
         .map_err(|e| e.to_string())?;
@@ -226,7 +221,10 @@ pub(crate) async fn send_sp(
                 acc += &next.message;
                 acc
             });
-        return Err(format!("Errors upon submitting servicepower claim : {}", msg));
+        return Err(format!(
+            "Errors upon submitting servicepower claim : {}",
+            msg
+        ));
     }
 
     let sent = sp_claim_sub.claims.remove(0);
@@ -245,8 +243,8 @@ pub(crate) async fn send_sp(
         }
     }
 
-    let mut sp_claim_ret = sp_retrieve
-        .get_claim(&claim_number)
+    let mut sp_claim_ret = sp
+        .get_claim(claim_number)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -297,10 +295,10 @@ pub async fn get_qb_items(parts: &[InputPart], qb: &Quickbooks) -> Result<Vec<Nt
     let mut items = vec![];
     for part in parts.iter() {
         match quick_oxibooks::qb_query!(qb, Item | name = &part.part_number) {
-            Ok(inv) => items.push(inv.into()),
+            Ok(inv) => items.push(inv.to_ref().map_err(|e| e.to_string())?),
             Err(_) => {
                 let new_item = create_item(&part.part_number, qb).await?;
-                items.push(new_item.into())
+                items.push(new_item.to_ref().map_err(|e| e.to_string())?)
             }
         }
     }

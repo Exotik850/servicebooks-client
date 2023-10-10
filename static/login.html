@@ -58,22 +58,18 @@
 
   <script>
     const { invoke } = window.__TAURI__.tauri
-    async function login(token) {
+    function login(token) {
       if (token === '') {
         return;
       }
-      await invoke('login', { token: token }) 
+      invoke('login', { token })
     }
 
     const tokenInput = document.getElementById('token');
     const submitBtn = document.getElementById('submit');
 
     tokenInput.addEventListener('input', () => {
-      if(tokenInput.value === '') {
-        submitBtn.disabled = true;
-      } else {
-        submitBtn.disabled = false;
-      }
+      submitBtn.disabled = tokenInput.value === ""
     });
   </script>
 

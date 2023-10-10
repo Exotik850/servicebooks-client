@@ -9,7 +9,7 @@
   },
   "package": {
     "productName": "servicebooks-client",
-    "version": "0.1.7"
+    "version": "0.1.8"
   },
   "tauri": {
     "updater": {
@@ -80,7 +80,7 @@
         "width": 900,
         "focus": true,
         "center": true,
-        "visible": true
+        "visible": false
       },
       {
         "fullscreen": false,

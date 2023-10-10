@@ -70,7 +70,12 @@ impl QBItem for HAInvoice {
 }
 
 impl QBToRef for HAInvoice {
-    fn ref_name(&self) -> Option<&String> {
-        self.qb_invoice.as_ref().and_then(|f| f.ref_name())
+    fn to_ref(
+        &self,
+    ) -> Result<quick_oxibooks::types::common::NtRef, quick_oxibooks::types::QBError> {
+        match self.qb_invoice.as_ref() {
+            Some(inv) => inv.to_ref(),
+            None => panic!("No QB Invoice on reference!"),
+        }
     }
 }
