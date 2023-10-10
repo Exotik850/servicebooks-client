@@ -7,7 +7,11 @@ mod util;
 use futures::lock::Mutex;
 use models::*;
 use quick_oxibooks::{
-    actions::QBCreate, client::Quickbooks, qb_query, types::{Invoice, QBToRef}, Environment
+    actions::QBCreate,
+    client::Quickbooks,
+    qb_query,
+    types::{Invoice, QBToRef},
+    Environment,
 };
 use service_poxi::ClaimHandler;
 use tauri::{generate_context, AppHandle, GlobalWindowEvent, Manager, State, WindowEvent};
@@ -54,20 +58,27 @@ async fn submit_claim(
 
     let sp_claim = get_sb.then_some(send_sp(claim, claim_number, &sp.0).await?);
 
-    if let (Some(claim), Some(qb_inv)) = (sp_claim.as_ref(), qb_invoice.as_mut()) {
-        if let Some(memo) = qb_inv.customer_memo.as_mut() {
-            if let Some(v) = memo.value.as_mut() {
-                *v = v.replace(
-                    "CLAIM_PLACEHOLDER",
-                    claim
-                        .claim_identifier
-                        .as_deref()
-                        .expect("No Claim Identifier in submitted claim"),
-                );
-                qb_invoice = Some(qb_inv.create(qb_ref).await.map_err(|e| e.to_string())?);
-            }
-        }
+    if let Some(claim) = sp_claim.as_ref() {
+        let mut qb_inv = qb_invoice.unwrap_or(qb_query!(
+            qb_ref,
+            Invoice | doc_number = &claim.claim_number
+        ).map_err(|e| e.to_string())?);
+
+        qb_inv = update_memo(
+            qb_ref,
+            &mut qb_inv,
+            MemoUpdateDetail {
+                claim_identifer: claim
+                    .claim_identifier
+                    .as_deref()
+                    .ok_or("No Claim Identifier in Servicepower Claim".to_string())?,
+            },
+        )
+        .await?;
+
+        qb_invoice = Some(qb_inv);
     }
+
 
     Ok(HAInvoice {
         qb_invoice,

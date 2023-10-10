@@ -1,7 +1,13 @@
 use quick_oxibooks::{
-    actions::QBCreate, client::Quickbooks, error::APIError, qb_query, types::{
-        common::{Addr, CustomField, Email, NtRef, PhoneNumber, TxnTaxDetail}, Customer, Invoice, Item, LineBuilder, LineDetail, QBToRef, SalesItemLineDetailBuilder, TaxLineDetail
-    }
+    actions::QBCreate,
+    client::Quickbooks,
+    error::APIError,
+    qb_query,
+    types::{
+        common::{Addr, CustomField, Email, NtRef, PhoneNumber, TxnTaxDetail},
+        Customer, Invoice, Item, LineBuilder, LineDetail, QBToRef, SalesItemLineDetailBuilder,
+        TaxLineDetail,
+    },
 };
 use service_poxi::{Claim, ClaimBuilder, ClaimHandler, ClaimUnion};
 
@@ -9,6 +15,29 @@ use crate::models::{InputInvoice, InputPart};
 
 pub const HA_MANUFACTURER: &str = "ALLIANCE - SPEED QUEEN";
 pub const HA_MODEL_BRAND: &str = "SPEED QUEEN";
+
+pub(crate) struct MemoUpdateDetail<'a> {
+    pub claim_identifer: &'a str,
+}
+
+pub(crate) async fn update_memo(
+    qb_ref: &Quickbooks,
+    invoice: &mut Invoice,
+    update: MemoUpdateDetail<'_>,
+) -> Result<Invoice, String> {
+    let MemoUpdateDetail { claim_identifer } = update;
+
+    let Some(memo) = invoice.customer_memo.as_mut() else {
+        return Err("Invoice has no memo to change".into());
+    };
+
+    let Some(v) = memo.value.as_mut() else {
+        return Err("Memo has no value to change".into());
+    };
+
+    *v = v.replace("CLAIM_PLACEHOLDER", claim_identifer);
+    Ok(invoice.create(qb_ref).await.map_err(|e| e.to_string())?)
+}
 
 pub(crate) async fn get_qb_customer(
     claim: &InputInvoice,
@@ -276,14 +305,10 @@ pub(crate) async fn generate_claim_number(qb: &Quickbooks) -> Result<String, API
         qb_query!(qb, Invoice | doc_number like "%W" ; "orderby DocNumber desc startposition 2")?;
 
     let num = inv.doc_number.unwrap(); // Protected by query, always safe
-    let index = num
-        .chars()
-        .position(|w| w == 'W')
-        .expect("No W in retrieved DocNumber");
 
-    let num = num[0..index]
+    let num = num[0..num.len()-1]
         .parse::<u64>()
-        .expect("Couldn't Parse DocNumber")
+        .map_err(APIError::DocNumberParse)?
         + 1;
 
     let num = format!("{}W", num);
