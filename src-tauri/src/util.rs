@@ -9,7 +9,7 @@ use quick_oxibooks::{
         TaxLineDetail,
     },
 };
-use service_poxi::{Claim, ClaimBuilder, ClaimHandler, ClaimUnion};
+use service_poxi::{Claim, ClaimBuilder, ClaimHandler, ClaimUnion, MessageContainer};
 
 use crate::models::{InputInvoice, InputPart};
 
@@ -238,36 +238,16 @@ pub(crate) async fn send_sp(
         .await
         .map_err(|e| e.to_string())?;
 
-    if sp_claim_sub.claims.is_empty() {
-        return Err("No claims in response when submitting servicepower claim".into());
+    if let Some(text) = sp_claim_sub.error_text() {
+      return Err(format!("Error on Submitting Servicepower Claim:{text}"))
     }
-
-    if !sp_claim_sub.messages.is_empty() {
-        let msg = sp_claim_sub
-            .messages
-            .into_iter()
-            .fold(String::new(), |mut acc, next| {
-                acc += &next.message;
-                acc
-            });
-        return Err(format!(
-            "Errors upon submitting servicepower claim : {}",
-            msg
-        ));
-    }
-
-    let sent = sp_claim_sub.claims.remove(0);
+    let sent = sp_claim_sub.get_claim(0);
 
     if let Some(messages) = sent.messages {
         if !messages.is_empty() {
-            let msg = messages.into_iter().fold(String::new(), |mut acc, next| {
-                acc += &next.message;
-                acc += "\n";
-                acc
-            });
             return Err(format!(
                 "Errors in submitted claim: {}",
-                &msg[..msg.len() - 1]
+                messages.join_messages()
             ));
         }
     }
@@ -277,38 +257,25 @@ pub(crate) async fn send_sp(
         .await
         .map_err(|e| e.to_string())?;
 
-    if sp_claim_ret.claims.is_empty() {
-        return Err("No claims in response when retreiving submitted servicepower claim".into());
+    if let Some(text) = sp_claim_ret.error_text() {
+      return Err(format!("Error on Retreiving Servicepower Claim:{text}"))
     }
 
-    if !sp_claim_ret.messages.is_empty() {
-        let msg = sp_claim_ret
-            .messages
-            .into_iter()
-            .fold(String::new(), |mut acc, next| {
-                acc += &next.message;
-                acc
-            });
-        return Err(format!(
-            "Errors upon retreiving submitted servicepower claim {}",
-            msg
-        ));
-    }
-
-    let sp_claim_ret = sp_claim_ret.claims.remove(0);
+    let sp_claim_ret = sp_claim_ret.get_claim(0);
 
     Ok((sp_claim, sp_claim_ret).into())
 }
 
-pub(crate) async fn generate_claim_number(qb: &Quickbooks) -> Result<String, APIError> {
+pub(crate) async fn generate_claim_number(qb: &Quickbooks) -> Result<String, String> {
     let inv =
-        qb_query!(qb, Invoice | doc_number like "%W" ; "orderby DocNumber desc startposition 2")?;
+        qb_query!(qb, Invoice | doc_number like "%W" ; "orderby DocNumber desc startposition 2")
+        .map_err(|e| e.to_string())?;
 
     let num = inv.doc_number.unwrap(); // Protected by query, always safe
 
     let num = num[0..num.len()-1]
         .parse::<u64>()
-        .map_err(APIError::DocNumberParse)?
+        .map_err(|e| e.to_string())?
         + 1;
 
     let num = format!("{}W", num);

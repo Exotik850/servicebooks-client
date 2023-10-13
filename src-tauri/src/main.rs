@@ -20,14 +20,12 @@ use util::*;
 struct QBState(Mutex<Option<Quickbooks>>);
 struct SPState(ClaimHandler);
 
-type Result<T> = std::result::Result<T, String>;
-
 #[tauri::command]
 async fn submit_claim(
     claim: InputInvoice,
     get_sb: bool,
     app_handle: AppHandle,
-) -> Result<HAInvoice> {
+) -> Result<HAInvoice, String> {
     let qb: State<QBState> = app_handle.state();
     let sp: State<SPState> = app_handle.state();
 
@@ -92,7 +90,7 @@ async fn get_claim(
     get_qb: bool,
     get_sb: bool,
     app_handle: AppHandle,
-) -> Result<HAInvoice> {
+) -> Result<HAInvoice, String> {
     let mut out: HAInvoice = Default::default();
 
     if get_qb {
@@ -114,8 +112,8 @@ async fn get_claim(
                 .get_claim(claim_number)
                 .await
                 .map_err(|e| e.to_string())?
-                .claims
-                .remove(0)
+                .try_get_claim(0)
+                .ok_or::<String>("No claims in Retrieved Claim Response".into())?
                 .into(),
         )
     }
@@ -124,7 +122,7 @@ async fn get_claim(
 }
 
 #[tauri::command]
-async fn login(app_handle: AppHandle, token: String) -> Result<()> {
+async fn login(app_handle: AppHandle, token: String) -> Result<(), String> {
     if let Some(login) = app_handle.get_window("login") {
         login.close().map_err(|e| e.to_string())?;
     }
@@ -152,7 +150,7 @@ async fn login(app_handle: AppHandle, token: String) -> Result<()> {
 }
 
 #[tauri::command]
-async fn show_main(app_handle: AppHandle) -> Result<()> {
+async fn show_main(app_handle: AppHandle) -> Result<(), String> {
     let state: State<QBState> = app_handle.state();
     if state.0.lock().await.is_some() {
         let window = app_handle
@@ -168,7 +166,7 @@ async fn show_main(app_handle: AppHandle) -> Result<()> {
 
 #[tokio::main]
 async fn main() {
-    env_logger::init();
+    pretty_env_logger::init();
 
     let qb = if let Ok(data) = intuit_oxi_auth::TokenSession::grab_from_cache_async(
         intuit_oxi_auth::Environment::PRODUCTION.cache_name(),

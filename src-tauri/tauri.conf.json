@@ -28,6 +28,9 @@
         "startDragging": true,
         "unmaximize": true,
         "unminimize": true
+      },
+      "dialog": {
+        "open": true
       }
     },
     "bundle": {
@@ -55,7 +58,7 @@
         "signingIdentity": null
       },
       "resources": [],
-      "shortDescription": "",
+      "shortDescription": "A simple data entry application for handling warranty claims with Quickbooks and ServicePower",
       "targets": "all",
       "windows": {
         "certificateThumbprint": null,
@@ -80,7 +83,7 @@
         "width": 900,
         "focus": true,
         "center": true,
-        "visible": false
+        "visible": true
       },
       {
         "fullscreen": false,

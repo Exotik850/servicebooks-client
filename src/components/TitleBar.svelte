@@ -6,6 +6,7 @@
 
   enum State {
     CLAIM_FORM = "CLAIM_FORM",
+    DOCUMENT_UPLOAD = "DOCUMENT_UPLOAD",
     CLAIM_SEARCH = "CLAIM_SEARCH",
   }
 
@@ -21,6 +22,11 @@
     { id: 1, label: "Claim Form", action: () => changeState(State.CLAIM_FORM) },
     {
       id: 2,
+      label: "Document Upload",
+      action: () => changeState(State.DOCUMENT_UPLOAD),
+    },
+    {
+      id: 3,
       label: "Claim Search",
       action: () => changeState(State.CLAIM_SEARCH),
     },
@@ -33,6 +39,10 @@
     item.action();
   };
 </script>
+
+
+<br/>
+<br/>
 
 <div data-tauri-drag-region class="titlebar">
   <h5 data-tauri-drag-region class="title">ServiceBooks</h5>
