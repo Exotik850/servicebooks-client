@@ -31,6 +31,10 @@
       },
       "dialog": {
         "open": true
+      },
+      "protocol": {
+        "asset": true,
+        "assetScope": ["**"]
       }
     },
     "bundle": {
@@ -50,13 +54,6 @@
       ],
       "identifier": "com.exotik850.servicebooks",
       "longDescription": "",
-      "macOS": {
-        "entitlements": null,
-        "exceptionDomain": "",
-        "frameworks": [],
-        "providerShortName": null,
-        "signingIdentity": null
-      },
       "resources": [],
       "shortDescription": "A simple data entry application for handling warranty claims with Quickbooks and ServicePower",
       "targets": "all",
@@ -65,15 +62,13 @@
         "digestAlgorithm": "sha256",
         "timestampUrl": "",
         "webviewInstallMode": {
-          "silent": false,
           "type": "embedBootstrapper"
         }
       }
     },
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost"
     },
-
     "windows": [
       {
         "fullscreen": false,

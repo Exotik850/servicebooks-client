@@ -249,11 +249,11 @@
           <fieldset>
             <label for="quickbooks">
               Quickbooks
-              <input type="checkbox" id="quickbooks" bind:checked={getQb} />
+              <input type="checkbox" id="quickbooks" role="switch" bind:checked={getQb} />
             </label>
             <label for="servicepower">
               Servicepower
-              <input type="checkbox" id="servicepower" bind:checked={getSb} />
+              <input type="checkbox" id="servicepower" role="switch" bind:checked={getSb} />
             </label>
           </fieldset>
         </div>

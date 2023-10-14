@@ -1,13 +1,7 @@
 use quick_oxibooks::{
-    actions::QBCreate,
-    client::Quickbooks,
-    error::APIError,
-    qb_query,
-    types::{
-        common::{Addr, CustomField, Email, NtRef, PhoneNumber, TxnTaxDetail},
-        Customer, Invoice, Item, LineBuilder, LineDetail, QBToRef, SalesItemLineDetailBuilder,
-        TaxLineDetail,
-    },
+    actions::QBCreate, client::Quickbooks, qb_query, types::{
+        common::{Addr, CustomField, Email, NtRef, PhoneNumber, TxnTaxDetail}, Customer, Invoice, Item, LineBuilder, LineDetail, QBToRef, SalesItemLineDetailBuilder, TaxLineDetail
+    }
 };
 use service_poxi::{Claim, ClaimBuilder, ClaimHandler, ClaimUnion, MessageContainer};
 
@@ -239,7 +233,7 @@ pub(crate) async fn send_sp(
         .map_err(|e| e.to_string())?;
 
     if let Some(text) = sp_claim_sub.error_text() {
-      return Err(format!("Error on Submitting Servicepower Claim:{text}"))
+        return Err(format!("Error on Submitting Servicepower Claim:{text}"));
     }
     let sent = sp_claim_sub.get_claim(0);
 
@@ -258,7 +252,7 @@ pub(crate) async fn send_sp(
         .map_err(|e| e.to_string())?;
 
     if let Some(text) = sp_claim_ret.error_text() {
-      return Err(format!("Error on Retreiving Servicepower Claim:{text}"))
+        return Err(format!("Error on Retreiving Servicepower Claim:{text}"));
     }
 
     let sp_claim_ret = sp_claim_ret.get_claim(0);
@@ -269,11 +263,11 @@ pub(crate) async fn send_sp(
 pub(crate) async fn generate_claim_number(qb: &Quickbooks) -> Result<String, String> {
     let inv =
         qb_query!(qb, Invoice | doc_number like "%W" ; "orderby DocNumber desc startposition 2")
-        .map_err(|e| e.to_string())?;
+            .map_err(|e| e.to_string())?;
 
     let num = inv.doc_number.unwrap(); // Protected by query, always safe
 
-    let num = num[0..num.len()-1]
+    let num = num[0..num.len() - 1]
         .parse::<u64>()
         .map_err(|e| e.to_string())?
         + 1;

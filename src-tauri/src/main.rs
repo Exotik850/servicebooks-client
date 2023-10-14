@@ -7,11 +7,8 @@ mod util;
 use futures::lock::Mutex;
 use models::*;
 use quick_oxibooks::{
-    actions::QBCreate,
-    client::Quickbooks,
-    qb_query,
-    types::{Invoice, QBToRef},
-    Environment,
+    actions::QBCreate, client::Quickbooks, qb_query, types::{Attachable, Invoice, QBToRef}, Environment,
+    QBAttachment
 };
 use service_poxi::ClaimHandler;
 use tauri::{generate_context, AppHandle, GlobalWindowEvent, Manager, State, WindowEvent};
@@ -57,10 +54,10 @@ async fn submit_claim(
     let sp_claim = get_sb.then_some(send_sp(claim, claim_number, &sp.0).await?);
 
     if let Some(claim) = sp_claim.as_ref() {
-        let mut qb_inv = qb_invoice.unwrap_or(qb_query!(
-            qb_ref,
-            Invoice | doc_number = &claim.claim_number
-        ).map_err(|e| e.to_string())?);
+        let mut qb_inv = qb_invoice.unwrap_or(
+            qb_query!(qb_ref, Invoice | doc_number = &claim.claim_number)
+                .map_err(|e| e.to_string())?,
+        );
 
         qb_inv = update_memo(
             qb_ref,
@@ -76,7 +73,6 @@ async fn submit_claim(
 
         qb_invoice = Some(qb_inv);
     }
-
 
     Ok(HAInvoice {
         qb_invoice,
@@ -164,6 +160,49 @@ async fn show_main(app_handle: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn upload_document(
+    document: String,
+    get_qb: bool,
+    get_sb: bool,
+    claim_number: String,
+    description: String,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+  println!("Asked to upload: {}", document);
+
+    if get_qb {
+        let qb: State<QBState> = app_handle.state();
+        let qb_ref = qb.0.lock().await;
+        let qb_ref = qb_ref.as_ref()
+                .ok_or::<String>("Quickbooks manager not initialized!".into())?;
+
+        let obj = qb_query!(qb_ref, Invoice | doc_number = &claim_number)
+        .map_err(|e| e.to_string())?;
+
+        let a_ref = obj.to_ref()
+            .map_err(|e| e.to_string())?
+            .into();
+
+        let attach = Attachable::new()
+            .attachable_ref(vec![a_ref])
+            .file_name(&document)
+            .map_err(|e| e.to_string())?
+            .build()
+            .map_err(|e| e.to_string())?;
+
+        attach.upload(qb_ref).await.map_err(|e| e.to_string())?;
+    }
+
+    if get_sb {
+        let sp: State<SPState> = app_handle.state();
+        sp.0.upload_document_by_claim_number(claim_number, document, "PHO".into(), Some(description)).await
+        .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     pretty_env_logger::init();
@@ -197,7 +236,8 @@ async fn main() {
             submit_claim,
             get_claim,
             login,
-            show_main
+            show_main,
+            upload_document,
         ])
         .setup(move |app| {
             let window = app.get_window("main").expect("No main window on startup");
