@@ -18,7 +18,7 @@
 
       if (extensions.includes(e.payload[0].split(".").pop())) {
         console.log("File set by drag and drop");
-        doc = e.payload[0];
+        filePath = e.payload[0];
       } else {
         errors = ["You can only upload images at this time!"];
       }
@@ -29,13 +29,15 @@
     unlisten();
   });
 
-  let doc = null;
   let errors = [];
-  let getQb = false;
-  let getSb = false;
+  let success = null;
+  let sent = null;
+  let filePath = null;
+  let uploadQb = false;
+  let uploadSp = false;
   let claimNumber = "";
-  let description = "";
-  $: currentImageView = doc ? convertFileSrc(doc) : "";
+  let imageDescription = "";
+  $: currentImageView = filePath ? convertFileSrc(filePath) : "";
 
   async function getDocuments() {
     errors = [];
@@ -44,35 +46,54 @@
       title: "Select documents",
       filters: [
         {
-          name: "Documents",
+          name: "Documents (Only images as of now)",
           extensions,
         },
       ],
     }).catch((error) => {
       errors = [error];
     });
-    doc = newImage;
+    filePath = newImage;
   }
 
   async function submitDocument() {
     invoke("upload_document", {
-      document: doc,
-      getQb,
-      getSb,
+      filePath,
+      uploadQb,
+      uploadSp,
       claimNumber,
-      description,
+      imageDescription,
     })
       .then((result) => {
         console.log(result);
+        sent = "";
+        if (uploadQb) sent += "Quickbooks";
+        if (uploadQb && uploadSp) sent += " and ";
+        if (uploadSp) sent += "ServicePower";
+        success = filePath;
+        filePath = null;
+        uploadQb = false;
+        uploadSp = false;
+        claimNumber = "";
+        imageDescription = "";
       })
       .catch((err) => {
-        console.error(err);
+        errors = [err];
+        sent = null;
+        success = null;
       });
   }
 </script>
 
+{#if success !== null}
+ <article style="background-color: green;">
+  <h2>Success!</h2>
+  <p>Uploaded {success} to {sent}</p>
+ </article>
+{/if}
+
 {#each errors as error}
-  <input type="text" placeholder={error} readonly aria-invalid="true" />
+  <article class="error"><p>{error}</p></article>
 {/each}
 
 <div>
@@ -84,16 +105,16 @@
       <button on:click={getDocuments}>Choose Document</button>
     </div>
 
-    {#if doc != null}
+    {#if filePath != null}
       <div class="container">
-        <img class="image" src={currentImageView} />
+        <img class="image" src={currentImageView} alt="Selected document"/>
         <br />
         <input placeholder="Claim Number" bind:value={claimNumber} />
         <textarea
           rows="2"
           placeholder="Description"
           style="resize: none;"
-          bind:value={description}
+          bind:value={imageDescription}
         />
         <div class="submit-select">
           <span>Send To:</span>
@@ -104,7 +125,7 @@
                 type="checkbox"
                 id="quickbooks"
                 role="switch"
-                bind:checked={getQb}
+                bind:checked={uploadQb}
               />
             </label>
             <label for="servicepower">
@@ -113,14 +134,14 @@
                 type="checkbox"
                 id="servicepower"
                 role="switch"
-                bind:checked={getSb}
+                bind:checked={uploadSp}
               />
             </label>
           </fieldset>
         </div>
         <button
           on:click={submitDocument}
-          disabled={claimNumber === "" || description === "" || (!getQb && !getSb)}>Submit</button
+          disabled={claimNumber === "" || imageDescription === "" || (!uploadQb && !uploadSp)}>Submit</button
         >
       </div>
     {:else}
@@ -150,5 +171,13 @@
   .image {
     max-width: 75%;
     margin: 0 auto;
+  }
+  .error {
+    border: 1px solid red;
+    padding: 1em; 
+    margin: 1em 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
   }
 </style>

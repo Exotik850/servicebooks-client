@@ -1,14 +1,15 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod error;
 mod models;
 mod util;
 
+use error::ServiceBooksError;
 use futures::lock::Mutex;
 use models::*;
 use quick_oxibooks::{
-    actions::QBCreate, client::Quickbooks, qb_query, types::{Attachable, Invoice, QBToRef}, Environment,
-    QBAttachment
+    actions::QBCreate, client::Quickbooks, qb_query, types::{Attachable, Invoice, QBToRef}, Environment, QBAttachment
 };
 use service_poxi::ClaimHandler;
 use tauri::{generate_context, AppHandle, GlobalWindowEvent, Manager, State, WindowEvent};
@@ -16,48 +17,40 @@ use util::*;
 
 struct QBState(Mutex<Option<Quickbooks>>);
 struct SPState(ClaimHandler);
+type Result<T> = std::result::Result<T, ServiceBooksError>;
 
 #[tauri::command]
 async fn submit_claim(
     claim: InputInvoice,
     get_sb: bool,
     app_handle: AppHandle,
-) -> Result<HAInvoice, String> {
+) -> Result<HAInvoice> {
     let qb: State<QBState> = app_handle.state();
     let sp: State<SPState> = app_handle.state();
 
     let qb_ref = qb.0.lock().await;
-    let qb_ref = qb_ref.as_ref().ok_or("Couldn't get QB Lock!".to_owned())?;
+    let qb_ref = qb_ref.as_ref().ok_or(ServiceBooksError::QBLockError)?;
 
     let (mut qb_invoice, claim_number) = if let Some(data) = &claim.claim_number {
         (None, data.clone())
     } else {
-        let doc_number = generate_claim_number(qb_ref)
-            .await
-            .map_err(|e| e.to_string())?;
+        let doc_number = generate_claim_number(qb_ref).await?;
 
         let cust = get_qb_customer(&claim, qb_ref).await?;
 
         let items = get_qb_items(&claim.parts, qb_ref).await?;
 
-        let inv = default_qb_invoice(
-            cust.to_ref().map_err(|e| e.to_string())?,
-            items,
-            doc_number.clone(),
-        );
-        (
-            Some(inv.create(qb_ref).await.map_err(|e| e.to_string())?),
-            doc_number,
-        )
+        let inv = default_qb_invoice(cust.to_ref()?, items, doc_number.clone(), &claim);
+        (Some(inv.create(qb_ref).await?), doc_number)
     };
 
     let sp_claim = get_sb.then_some(send_sp(claim, claim_number, &sp.0).await?);
 
     if let Some(claim) = sp_claim.as_ref() {
-        let mut qb_inv = qb_invoice.unwrap_or(
-            qb_query!(qb_ref, Invoice | doc_number = &claim.claim_number)
-                .map_err(|e| e.to_string())?,
-        );
+        let mut qb_inv = qb_invoice.unwrap_or(qb_query!(
+            qb_ref,
+            Invoice | doc_number = &claim.claim_number
+        )?);
 
         qb_inv = update_memo(
             qb_ref,
@@ -66,7 +59,7 @@ async fn submit_claim(
                 claim_identifer: claim
                     .claim_identifier
                     .as_deref()
-                    .ok_or("No Claim Identifier in Servicepower Claim".to_string())?,
+                    .ok_or(ServiceBooksError::MissingClaimIdentifier)?,
             },
         )
         .await?;
@@ -86,18 +79,14 @@ async fn get_claim(
     get_qb: bool,
     get_sb: bool,
     app_handle: AppHandle,
-) -> Result<HAInvoice, String> {
+) -> Result<HAInvoice> {
     let mut out: HAInvoice = Default::default();
 
     if get_qb {
         let qb: State<QBState> = app_handle.state();
         let qb_ref = qb.0.lock().await;
-        let qb_ref = qb_ref
-            .as_ref()
-            .ok_or("Quickbooks manager not initialized!".to_string())?;
-        out.qb_invoice = Some(
-            qb_query!(qb_ref, Invoice | doc_number = claim_number).map_err(|e| e.to_string())?,
-        );
+        let qb_ref = qb_ref.as_ref().ok_or(ServiceBooksError::QBUninitError)?;
+        out.qb_invoice = Some(qb_query!(qb_ref, Invoice | doc_number = claim_number)?);
     }
 
     if get_sb {
@@ -106,10 +95,9 @@ async fn get_claim(
             retreive_handler
                 .0
                 .get_claim(claim_number)
-                .await
-                .map_err(|e| e.to_string())?
+                .await?
                 .try_get_claim(0)
-                .ok_or::<String>("No claims in Retrieved Claim Response".into())?
+                .ok_or(ServiceBooksError::EmptyClaimResponse)?
                 .into(),
         )
     }
@@ -118,9 +106,9 @@ async fn get_claim(
 }
 
 #[tauri::command]
-async fn login(app_handle: AppHandle, token: String) -> Result<(), String> {
+async fn login(app_handle: AppHandle, token: String) -> Result<()> {
     if let Some(login) = app_handle.get_window("login") {
-        login.close().map_err(|e| e.to_string())?;
+        login.close()?;
     }
 
     let qb: State<QBState> = app_handle.state();
@@ -131,30 +119,28 @@ async fn login(app_handle: AppHandle, token: String) -> Result<(), String> {
             Environment::PRODUCTION,
             "peepeepoopoo",
         )
-        .await
-        .map_err(|e| e.to_string())?,
+        .await?,
     );
 
     app_handle
         .get_window("main")
-        .ok_or("Could not get main window from app handle".to_string())?
-        .show()
-        .map_err(|e| e.to_string())?;
+        .ok_or(ServiceBooksError::MissingWindow("main"))?
+        .show()?;
     println!("Main window shown");
 
     Ok(())
 }
 
 #[tauri::command]
-async fn show_main(app_handle: AppHandle) -> Result<(), String> {
+async fn show_main(app_handle: AppHandle) -> Result<()> {
     let state: State<QBState> = app_handle.state();
     if state.0.lock().await.is_some() {
         let window = app_handle
             .get_window("main")
-            .ok_or::<String>("No Main window found!".into())?;
-        window.show().map_err(|e| e.to_string())?;
+            .ok_or(ServiceBooksError::MissingWindow("main"))?;
+        window.show()?;
     } else {
-        return Err("The Quickbooks object has not been initialized".into());
+        return Err(ServiceBooksError::QBUninitError);
     }
 
     Ok(())
@@ -162,42 +148,47 @@ async fn show_main(app_handle: AppHandle) -> Result<(), String> {
 
 #[tauri::command]
 async fn upload_document(
-    document: String,
-    get_qb: bool,
-    get_sb: bool,
+    file_path: String,
+    upload_qb: bool,
+    upload_sp: bool,
     claim_number: String,
-    description: String,
+    image_description: String,
     app_handle: AppHandle,
-) -> Result<(), String> {
-  println!("Asked to upload: {}", document);
+) -> Result<()> {
 
-    if get_qb {
+    let file_path = match file_path.contains("\\") {
+      false => file_path,
+      true => file_path.replace("\\", "/")
+    };
+
+    if upload_qb {
         let qb: State<QBState> = app_handle.state();
         let qb_ref = qb.0.lock().await;
-        let qb_ref = qb_ref.as_ref()
-                .ok_or::<String>("Quickbooks manager not initialized!".into())?;
+        let qb_ref = qb_ref.as_ref().ok_or(ServiceBooksError::QBUninitError)?;
 
-        let obj = qb_query!(qb_ref, Invoice | doc_number = &claim_number)
-        .map_err(|e| e.to_string())?;
+        let obj = qb_query!(qb_ref, Invoice | doc_number = &claim_number)?;
 
-        let a_ref = obj.to_ref()
-            .map_err(|e| e.to_string())?
-            .into();
+        let a_ref = obj.to_ref()?.into();
 
-        let attach = Attachable::new()
-            .attachable_ref(vec![a_ref])
-            .file_name(&document)
-            .map_err(|e| e.to_string())?
-            .build()
-            .map_err(|e| e.to_string())?;
+        let attach = Attachable {
+          attachable_ref: Some(vec![a_ref]),
+          file_name: Some(file_path.clone()),
+          ..Default::default()
+        };
 
-        attach.upload(qb_ref).await.map_err(|e| e.to_string())?;
+        attach.upload(qb_ref).await?;
     }
 
-    if get_sb {
+    if upload_sp {
         let sp: State<SPState> = app_handle.state();
-        sp.0.upload_document_by_claim_number(claim_number, document, "PHO".into(), Some(description)).await
-        .map_err(|e| e.to_string())?;
+        sp.0.upload_document_by_claim_number(
+            claim_number,
+            file_path,
+            "CG1".into(), // TODO Find out wth this is
+            Some(image_description),
+        )
+        .await
+        .map_err(ServiceBooksError::SPError)?;
     }
 
     Ok(())
