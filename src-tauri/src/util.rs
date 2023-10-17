@@ -5,7 +5,10 @@ use quick_oxibooks::{
 };
 use service_poxi::{Claim, ClaimBuilder, ClaimHandler, ClaimUnion, MessageContainer};
 
-use crate::models::{InputInvoice, InputPart};
+use super::Result;
+use crate::{
+    error::ServiceBooksError, models::{InputInvoice, InputPart}
+};
 
 pub const HA_MANUFACTURER: &str = "ALLIANCE - SPEED QUEEN";
 pub const HA_MODEL_BRAND: &str = "SPEED QUEEN";
@@ -18,25 +21,26 @@ pub(crate) async fn update_memo(
     qb_ref: &Quickbooks,
     invoice: &mut Invoice,
     update: MemoUpdateDetail<'_>,
-) -> Result<Invoice, String> {
+) -> Result<Invoice> {
     let MemoUpdateDetail { claim_identifer } = update;
 
     let Some(memo) = invoice.customer_memo.as_mut() else {
-        return Err("Invoice has no memo to change".into());
+        return Err(ServiceBooksError::MemoUpdateMissingItem(
+            "Invoice Memo".into(),
+        ));
     };
 
     let Some(v) = memo.value.as_mut() else {
-        return Err("Memo has no value to change".into());
+        return Err(ServiceBooksError::MemoUpdateMissingItem(
+            "Memo Value".into(),
+        ));
     };
 
     *v = v.replace("CLAIM_PLACEHOLDER", claim_identifer);
-    Ok(invoice.create(qb_ref).await.map_err(|e| e.to_string())?)
+    Ok(invoice.create(qb_ref).await?)
 }
 
-pub(crate) async fn get_qb_customer(
-    claim: &InputInvoice,
-    qb: &Quickbooks,
-) -> Result<Customer, String> {
+pub(crate) async fn get_qb_customer(claim: &InputInvoice, qb: &Quickbooks) -> Result<Customer> {
     if let Ok(cust) = qb_query!(
         qb,
         Customer | given_name = &claim.first_name,
@@ -62,17 +66,19 @@ pub(crate) async fn get_qb_customer(
         .primary_phone(PhoneNumber {
             free_form_number: Some(claim.phone_number.clone()),
         })
-        .build()
-        .map_err(|e| e.to_string())?;
+        .build()?;
 
-    cust.create(qb).await.map_err(|e| e.to_string())
+    Ok(cust.create(qb).await?)
 }
 
 pub(crate) fn default_qb_invoice(
     customer_ref: NtRef,
     items: Vec<NtRef>,
     doc_number: String,
+    claim: &InputInvoice,
 ) -> Invoice {
+    let today = chrono::Utc::now().date_naive();
+
     let custom_field = vec![CustomField {
         definition_id: Some("2".into()),
         string_value: Some("SQ".into()),
@@ -86,6 +92,7 @@ pub(crate) fn default_qb_invoice(
             .item_ref::<NtRef>(("Warranty - Speed Queen:SQ Warranty Call","5489").into())
             .tax_code_ref::<NtRef>("TAX".into())
             .qty(1u32)
+            .service_date(today)
             .build()
             .unwrap()
         ))
@@ -96,13 +103,15 @@ pub(crate) fn default_qb_invoice(
             acc.push(LineBuilder::default()
             .line_detail(LineDetail::SalesItemLineDetail(
                 SalesItemLineDetailBuilder::default()
-                    .item_ref(next.to_owned())
+                    .item_ref(next)
                     .tax_code_ref::<NtRef>("TAX".into())
                     .qty(1u32)
+                    .service_date(today)
                     .build()
                     .unwrap(),
                 ))
             .amount(0.0)
+            // .description(value) // Todo Make description optional field in UI
             .build()
             .unwrap());
             acc
@@ -115,6 +124,7 @@ pub(crate) fn default_qb_invoice(
             .line_detail(LineDetail::TaxLineDetail(TaxLineDetail {
                 percent_based: Some(true),
                 tax_percent: Some(9.75),
+                tax_rate_ref: Some("58".into()),
                 ..Default::default()
             }))
             .build()
@@ -125,12 +135,14 @@ pub(crate) fn default_qb_invoice(
 
     let customer_memo = format!(
         "Warranty Claim Filed date w/Service Power: {today}
+        SN {appliance} {serial_number}
         Claim # CLAIM_PLACEHOLDER
         Claim paid 8/xx/23 $CLAIM_PAID_AMT ()
         Voucher # VOUCHER_PLACEHOLDER
         Parts paid via Marcone ($PARTS_PAID_AMT)
         Invoice # PART_INVOICE_PLACEHOLDER dated PART_PAID_DATE",
-        today = chrono::Utc::now().date_naive()
+        appliance = claim.product_code.clone(),
+        serial_number = claim.serial_number.clone(),
     );
 
     // RA Doesn't like this for some reason
@@ -150,7 +162,7 @@ pub(crate) fn default_sp_claim(
     claim: InputInvoice,
     pn: u64,
     claim_number: String,
-) -> Result<Claim, String> {
+) -> Result<Claim> {
     let InputInvoice {
         purchase_date,
         date_completed,
@@ -188,7 +200,7 @@ pub(crate) fn default_sp_claim(
     let requested_date: String = date_requested.split('-').collect();
     let completed_date: String = date_completed.split('-').collect();
 
-    ClaimBuilder::default()
+    Ok(ClaimBuilder::default()
         .brand_name(HA_MODEL_BRAND)
         .manufacturer_name(HA_MANUFACTURER)
         .service_center_number("4683")
@@ -197,9 +209,21 @@ pub(crate) fn default_sp_claim(
         .eia_defect_or_complaint_code(defect_code)
         .serial_number(serial_number)
         .customer_city(city)
-        .date_purchased(purchase_date.parse::<u32>().map_err(|e| e.to_string())?)
-        .date_completed(completed_date.parse::<u32>().map_err(|e| e.to_string())?)
-        .date_requested(requested_date.parse::<u32>().map_err(|e| e.to_string())?)
+        .date_purchased(
+            purchase_date
+                .parse::<u32>()
+                .map_err(|_| ServiceBooksError::DateParseError("Purchase", purchase_date))?,
+        )
+        .date_completed(
+            completed_date
+                .parse::<u32>()
+                .map_err(|_| ServiceBooksError::DateParseError("Completed", completed_date))?,
+        )
+        .date_requested(
+            requested_date
+                .parse::<u32>()
+                .map_err(|_| ServiceBooksError::DateParseError("Requested", requested_date))?,
+        )
         .customer_first_name(first_name)
         .customer_last_name(last_name)
         .customer_email(email)
@@ -212,47 +236,37 @@ pub(crate) fn default_sp_claim(
         .customer_phone(pn)
         .defect_or_complaint_description(issue_description)
         .parts(parts)
-        .build()
-        .map_err(|e| e.to_string())
+        .build()?)
 }
 
 pub(crate) async fn send_sp(
     claim: InputInvoice,
     claim_number: String,
     sp: &ClaimHandler,
-) -> Result<ClaimUnion, String> {
+) -> Result<ClaimUnion> {
     let Ok(phone_number) = claim.phone_number.parse::<u64>() else {
-        return Err("Could not parse phone number, do not use anything other than numbers in the phone number field".into());
+        return Err(ServiceBooksError::PhoneNumberParseError(claim.phone_number));
     };
 
     let sp_claim = default_sp_claim(claim, phone_number, claim_number.clone())?;
 
-    let mut sp_claim_sub = sp
-        .submit_claim(sp_claim.clone())
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut sp_claim_sub = sp.submit_claim(sp_claim.clone()).await?;
 
     if let Some(text) = sp_claim_sub.error_text() {
-        return Err(format!("Error on Submitting Servicepower Claim:{text}"));
+        return Err(ServiceBooksError::ServicePowerClaimError("Submitting", text));
     }
     let sent = sp_claim_sub.get_claim(0);
 
     if let Some(messages) = sent.messages {
         if !messages.is_empty() {
-            return Err(format!(
-                "Errors in submitted claim: {}",
-                messages.join_messages()
-            ));
+            return Err(ServiceBooksError::ServicePowerClaimError("Submitted", messages.join_messages()));
         }
     }
 
-    let mut sp_claim_ret = sp
-        .get_claim(claim_number)
-        .await
-        .map_err(|e| e.to_string())?;
+    let mut sp_claim_ret = sp.get_claim(claim_number).await?;
 
     if let Some(text) = sp_claim_ret.error_text() {
-        return Err(format!("Error on Retreiving Servicepower Claim:{text}"));
+        return Err(ServiceBooksError::ServicePowerClaimError("Retrieving", text));
     }
 
     let sp_claim_ret = sp_claim_ret.get_claim(0);
@@ -260,16 +274,15 @@ pub(crate) async fn send_sp(
     Ok((sp_claim, sp_claim_ret).into())
 }
 
-pub(crate) async fn generate_claim_number(qb: &Quickbooks) -> Result<String, String> {
+pub(crate) async fn generate_claim_number(qb: &Quickbooks) -> Result<String> {
     let inv =
-        qb_query!(qb, Invoice | doc_number like "%W" ; "orderby DocNumber desc startposition 2")
-            .map_err(|e| e.to_string())?;
+        qb_query!(qb, Invoice | doc_number like "%W" ; "orderby DocNumber desc startposition 2")?;
 
     let num = inv.doc_number.unwrap(); // Protected by query, always safe
 
     let num = num[0..num.len() - 1]
         .parse::<u64>()
-        .map_err(|e| e.to_string())?
+        .map_err(|_| ServiceBooksError::DocNumberParseError(num))?
         + 1;
 
     let num = format!("{}W", num);
@@ -277,25 +290,22 @@ pub(crate) async fn generate_claim_number(qb: &Quickbooks) -> Result<String, Str
     Ok(num)
 }
 
-pub async fn get_qb_items(parts: &[InputPart], qb: &Quickbooks) -> Result<Vec<NtRef>, String> {
+pub async fn get_qb_items(parts: &[InputPart], qb: &Quickbooks) -> Result<Vec<NtRef>> {
     let mut items = vec![];
     for part in parts.iter() {
         match quick_oxibooks::qb_query!(qb, Item | name = &part.part_number) {
-            Ok(inv) => items.push(inv.to_ref().map_err(|e| e.to_string())?),
+            Ok(inv) => items.push(inv.to_ref()?),
             Err(_) => {
                 let new_item = create_item(&part.part_number, qb).await?;
-                items.push(new_item.to_ref().map_err(|e| e.to_string())?)
+                items.push(new_item.to_ref()?)
             }
         }
     }
     Ok(items)
 }
 
-async fn create_item(part_number: &str, qb: &Quickbooks) -> Result<Item, String> {
-    let item = Item::new()
-        .name(part_number)
-        .build()
-        .map_err(|e| e.to_string())?;
+async fn create_item(part_number: &str, qb: &Quickbooks) -> Result<Item> {
+    let item = Item::new().name(part_number).build()?;
 
-    item.create(qb).await.map_err(|e| e.to_string())
+    Ok(item.create(qb).await?)
 }

@@ -38,7 +38,7 @@
     }
 </script>
 
-<h2>Claim Search</h2>
+<h2>Claim Search (Will look better soon!)</h2>
 <article>
     <form>
         <label
