@@ -2,8 +2,12 @@ import * as yup from "yup";
 
 const partSchema = yup.object({
   part_number: yup.string().trim().required("Part Number missing from Part"),
-  invoice_number: yup.number().required("Invoice Number is required for every part"),
-  distributor_number: yup.number().required("Distributor is required for every part"),
+  invoice_number: yup
+    .number()
+    .required("Invoice Number is required for every part"),
+  distributor_number: yup
+    .number()
+    .required("Distributor is required for every part"),
 });
 
 const customerSchema = yup.object({
@@ -81,4 +85,3 @@ export const invoiceSchema = yup
   .concat(customerSchema)
   .concat(laborSchema)
   .concat(applianceSchema);
-

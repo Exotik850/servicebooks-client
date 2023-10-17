@@ -9,7 +9,7 @@
   import Codes from "./Codes.svelte";
   import { ValidationError } from "yup";
   import { invoiceSchema } from "./invoiceSchema";
-  import { displayObject } from "../displayObject"
+  import { displayObject } from "../displayObject";
 
   const progress = tweened(1, {
     duration: 400,
@@ -37,17 +37,14 @@
 
   async function submitClaim() {
     loading = true;
-    success = null
+    success = null;
     errors = {};
     console.log("Trying submit");
 
     try {
       await invoiceSchema.validate(invoice, { abortEarly: false });
       console.log("Validated");
-      invoice.phone_number = invoice.phone_number.replaceAll(
-        /[^\d]/g,
-        ""
-      );
+      invoice.phone_number = invoice.phone_number.replaceAll(/[^\d]/g, "");
       success = await invoke("submit_claim", {
         claim: invoice,
         getSb,
@@ -154,9 +151,7 @@
         <label>Product Code: <input bind:value={invoice.product_code} /></label>
         <label>Model Number: <input bind:value={invoice.model_number} /></label>
         <label
-          >Serial Number: <input
-            bind:value={invoice.serial_number}
-          /></label
+          >Serial Number: <input bind:value={invoice.serial_number} /></label
         >
         <label
           >Purchase Date: <input
@@ -230,7 +225,12 @@
           <article style="background-color: red;">
             {#if typeof errors === "object"}
               {#each Object.entries(errors) as [key, _]}
-                <input type="text" placeholder={key} readonly aria-invalid="true" />
+                <input
+                  type="text"
+                  placeholder={key}
+                  readonly
+                  aria-invalid="true"
+                />
               {/each}
             {:else}
               <input
@@ -249,11 +249,21 @@
           <fieldset>
             <label for="quickbooks">
               Quickbooks
-              <input type="checkbox" id="quickbooks" role="switch" bind:checked={getQb} />
+              <input
+                type="checkbox"
+                id="quickbooks"
+                role="switch"
+                bind:checked={getQb}
+              />
             </label>
             <label for="servicepower">
               Servicepower
-              <input type="checkbox" id="servicepower" role="switch" bind:checked={getSb} />
+              <input
+                type="checkbox"
+                id="servicepower"
+                role="switch"
+                bind:checked={getSb}
+              />
             </label>
           </fieldset>
         </div>

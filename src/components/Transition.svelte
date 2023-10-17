@@ -1,13 +1,13 @@
 <script lang="ts">
-    import { fade, blur } from "svelte/transition";
+  import { fade, blur } from "svelte/transition";
 
-    export let animDur: number = 150;
-    export let trans = blur;
+  export let animDur: number = 150;
+  export let trans = blur;
 </script>
 
 <div
-    in:trans={{ duration: animDur, delay: animDur }}
-    out:trans={{ duration: animDur }}
+  in:trans={{ duration: animDur, delay: animDur }}
+  out:trans={{ duration: animDur }}
 >
-    <slot />
+  <slot />
 </div>

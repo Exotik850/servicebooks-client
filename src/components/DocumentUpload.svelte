@@ -86,10 +86,10 @@
 </script>
 
 {#if success !== null}
- <article style="background-color: green;">
-  <h2>Success!</h2>
-  <p>Uploaded {success} to {sent}</p>
- </article>
+  <article style="background-color: green;">
+    <h2>Success!</h2>
+    <p>Uploaded {success} to {sent}</p>
+  </article>
 {/if}
 
 {#each errors as error}
@@ -107,7 +107,7 @@
 
     {#if filePath != null}
       <div class="container">
-        <img class="image" src={currentImageView} alt="Selected document"/>
+        <img class="image" src={currentImageView} alt="Selected document" />
         <br />
         <input placeholder="Claim Number" bind:value={claimNumber} />
         <textarea
@@ -141,7 +141,9 @@
         </div>
         <button
           on:click={submitDocument}
-          disabled={claimNumber === "" || imageDescription === "" || (!uploadQb && !uploadSp)}>Submit</button
+          disabled={claimNumber === "" ||
+            imageDescription === "" ||
+            (!uploadQb && !uploadSp)}>Submit</button
         >
       </div>
     {:else}
@@ -174,7 +176,7 @@
   }
   .error {
     border: 1px solid red;
-    padding: 1em; 
+    padding: 1em;
     margin: 1em 0;
     display: flex;
     justify-content: center;

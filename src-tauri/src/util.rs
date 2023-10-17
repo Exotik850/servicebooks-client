@@ -26,13 +26,13 @@ pub(crate) async fn update_memo(
 
     let Some(memo) = invoice.customer_memo.as_mut() else {
         return Err(ServiceBooksError::MemoUpdateMissingItem(
-            "Invoice Memo".into(),
+            "Invoice Memo",
         ));
     };
 
     let Some(v) = memo.value.as_mut() else {
         return Err(ServiceBooksError::MemoUpdateMissingItem(
-            "Memo Value".into(),
+            "Memo Value",
         ));
     };
 
@@ -253,20 +253,29 @@ pub(crate) async fn send_sp(
     let mut sp_claim_sub = sp.submit_claim(sp_claim.clone()).await?;
 
     if let Some(text) = sp_claim_sub.error_text() {
-        return Err(ServiceBooksError::ServicePowerClaimError("Submitting", text));
+        return Err(ServiceBooksError::ServicePowerClaimError(
+            "Submitting",
+            text,
+        ));
     }
     let sent = sp_claim_sub.get_claim(0);
 
     if let Some(messages) = sent.messages {
         if !messages.is_empty() {
-            return Err(ServiceBooksError::ServicePowerClaimError("Submitted", messages.join_messages()));
+            return Err(ServiceBooksError::ServicePowerClaimError(
+                "Submitted",
+                messages.join_messages(),
+            ));
         }
     }
 
     let mut sp_claim_ret = sp.get_claim(claim_number).await?;
 
     if let Some(text) = sp_claim_ret.error_text() {
-        return Err(ServiceBooksError::ServicePowerClaimError("Retrieving", text));
+        return Err(ServiceBooksError::ServicePowerClaimError(
+            "Retrieving",
+            text,
+        ));
     }
 
     let sp_claim_ret = sp_claim_ret.get_claim(0);

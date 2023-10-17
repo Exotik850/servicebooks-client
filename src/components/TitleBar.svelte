@@ -40,9 +40,8 @@
   };
 </script>
 
-
-<br/>
-<br/>
+<br />
+<br />
 
 <div data-tauri-drag-region class="titlebar">
   <h5 data-tauri-drag-region class="title">ServiceBooks</h5>

@@ -155,10 +155,9 @@ async fn upload_document(
     image_description: String,
     app_handle: AppHandle,
 ) -> Result<()> {
-
-    let file_path = match file_path.contains("\\") {
-      false => file_path,
-      true => file_path.replace("\\", "/")
+    let file_path = match file_path.contains('\\') {
+        false => file_path,
+        true => file_path.replace('\\', "/"),
     };
 
     if upload_qb {
@@ -171,9 +170,9 @@ async fn upload_document(
         let a_ref = obj.to_ref()?.into();
 
         let attach = Attachable {
-          attachable_ref: Some(vec![a_ref]),
-          file_name: Some(file_path.clone()),
-          ..Default::default()
+            attachable_ref: Some(vec![a_ref]),
+            file_name: Some(file_path.clone()),
+            ..Default::default()
         };
 
         attach.upload(qb_ref).await?;
