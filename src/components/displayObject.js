@@ -35,7 +35,7 @@ export function displayObject(obj, indent = 0) {
     return Object.entries(obj)
       .map(([key, value]) => {
         if (typeof value === "object") {
-          return `<div class="nested" style="padding-left:${indent + inc}px">
+          return `<div class="nested" style="padding-left:${indent}px">
                   <p><strong>${key}:</strong></p>
                   ${displayObject(value, indent + inc)}  
               </div>`;

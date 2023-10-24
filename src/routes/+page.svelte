@@ -6,9 +6,7 @@
   import TitleBar from "../components/TitleBar.svelte";
   import WarrantyForm from "../components/WarrantyForm/WarrantyForm.svelte";
   import Transition from "../components/Transition.svelte";
-  import { onMount } from "svelte";
-  import { invoke } from "@tauri-apps/api";
-
+  
   enum State {
     CLAIM_FORM = "CLAIM_FORM",
     DOCUMENT_UPLOAD = "DOCUMENT_UPLOAD",
@@ -16,10 +14,6 @@
   }
 
   let state = State.CLAIM_FORM;
-
-  onMount(() => {
-    invoke("show_main");
-  });
 </script>
 
 <svelte:head>
@@ -39,7 +33,8 @@
     </Transition>
   {:else if state === State.DOCUMENT_UPLOAD}
     <Transition>
-      <DocumentUpload />
+      <!-- <DocumentUpload /> -->
+      <p>Working on it!</p>
     </Transition>
   {/if}
 </div>

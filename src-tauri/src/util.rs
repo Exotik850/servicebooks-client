@@ -25,15 +25,11 @@ pub(crate) async fn update_memo(
     let MemoUpdateDetail { claim_identifer } = update;
 
     let Some(memo) = invoice.customer_memo.as_mut() else {
-        return Err(ServiceBooksError::MemoUpdateMissingItem(
-            "Invoice Memo",
-        ));
+        return Err(ServiceBooksError::MemoUpdateMissingItem("Invoice Memo"));
     };
 
     let Some(v) = memo.value.as_mut() else {
-        return Err(ServiceBooksError::MemoUpdateMissingItem(
-            "Memo Value",
-        ));
+        return Err(ServiceBooksError::MemoUpdateMissingItem("Memo Value"));
     };
 
     *v = v.replace("CLAIM_PLACEHOLDER", claim_identifer);
@@ -79,47 +75,45 @@ pub(crate) fn default_qb_invoice(
 ) -> Invoice {
     let today = chrono::Utc::now().date_naive();
 
-    let custom_field = vec![CustomField {
+    let custom_field = Some(vec![CustomField {
         definition_id: Some("2".into()),
         string_value: Some("SQ".into()),
         name: Some("Sales Rep".into()),
-        field_type: None,
-    }];
+        field_type: Some("StringType".into()),
+    }]);
 
-    let line = items.into_iter().fold(vec![LineBuilder::default()
-        .line_detail(LineDetail::SalesItemLineDetail(
-            SalesItemLineDetailBuilder::default()
-            .item_ref::<NtRef>(("Warranty - Speed Queen:SQ Warranty Call","5489").into())
-            .tax_code_ref::<NtRef>("TAX".into())
-            .qty(1u32)
-            .service_date(today)
-            .build()
-            .unwrap()
-        ))
-        .description("All Speed Queen warranty call information - should never have a balance. *See Tammy for details. ALWAYS change tax for Shelby county/ MS")
-        .amount(0.0)
-        .build()
-        .unwrap()], |mut acc, next| {
-            acc.push(LineBuilder::default()
+    let line = Some(items.into_iter().fold(vec![LineBuilder::default()
             .line_detail(LineDetail::SalesItemLineDetail(
                 SalesItemLineDetailBuilder::default()
-                    .item_ref(next)
-                    .tax_code_ref::<NtRef>("TAX".into())
-                    .qty(1u32)
-                    .service_date(today)
-                    .build()
-                    .unwrap(),
-                ))
+                .item_ref::<NtRef>(("Warranty - Speed Queen:SQ Warranty Call","5489").into())
+                .tax_code_ref::<NtRef>("TAX".into())
+                .qty(1u32)
+                .service_date(today)
+                .build()
+                .unwrap()
+            ))
+            .description("All Speed Queen warranty call information - should never have a balance. *See Tammy for details. ALWAYS change tax for Shelby county/ MS")
             .amount(0.0)
-            // .description(value) // Todo Make description optional field in UI
             .build()
-            .unwrap());
-            acc
-        });
+            .unwrap()], |mut acc, next| {
+                acc.push(LineBuilder::default()
+                .line_detail(LineDetail::SalesItemLineDetail(
+                    SalesItemLineDetailBuilder::default()
+                        .item_ref(next)
+                        .tax_code_ref::<NtRef>("TAX".into())
+                        .qty(1u32)
+                        .service_date(today)
+                        .build()
+                        .unwrap(),
+                    ))
+                .amount(0.0)
+                // .description(value) // Todo Make description optional field in UI
+                .build()
+                .unwrap());
+                acc
+            }));
 
-    let sales_term_ref: NtRef = ("Net 15", "22").into();
-
-    let txn_tax_detail = TxnTaxDetail {
+    let txn_tax_detail = Some(TxnTaxDetail {
         tax_line: Some(vec![LineBuilder::default()
             .line_detail(LineDetail::TaxLineDetail(TaxLineDetail {
                 percent_based: Some(true),
@@ -131,7 +125,7 @@ pub(crate) fn default_qb_invoice(
             .unwrap()]),
         txn_tax_code_ref: Some("35".into()),
         total_tax: Some(0.0),
-    };
+    });
 
     let customer_memo = format!(
         "Warranty Claim Filed date w/Service Power: {today}
@@ -140,22 +134,21 @@ pub(crate) fn default_qb_invoice(
         Claim paid 8/xx/23 $CLAIM_PAID_AMT ()
         Voucher # VOUCHER_PLACEHOLDER
         Parts paid via Marcone ($PARTS_PAID_AMT)
-        Invoice # PART_INVOICE_PLACEHOLDER dated PART_PAID_DATE",
+        Invoice # PARTS_INVOICE_PLACEHOLDER dated PARTS_PAID_DATE",
         appliance = claim.product_code.clone(),
         serial_number = claim.serial_number.clone(),
     );
 
-    // RA Doesn't like this for some reason
-    Invoice::new()
-        .custom_field(custom_field)
-        .customer_ref(customer_ref)
-        .sales_term_ref(sales_term_ref)
-        .line(line)
-        .doc_number(doc_number)
-        .txn_tax_detail(txn_tax_detail)
-        .customer_memo::<NtRef>(customer_memo.as_str().into())
-        .build()
-        .unwrap()
+    Invoice {
+        custom_field,
+        customer_ref: Some(customer_ref),
+        sales_term_ref: Some(("Net 15", "22").into()),
+        doc_number: Some(doc_number),
+        line,
+        txn_tax_detail,
+        customer_memo: Some(customer_memo.as_str().into()),
+        ..Default::default()
+    }
 }
 
 pub(crate) fn default_sp_claim(
@@ -305,16 +298,14 @@ pub async fn get_qb_items(parts: &[InputPart], qb: &Quickbooks) -> Result<Vec<Nt
         match quick_oxibooks::qb_query!(qb, Item | name = &part.part_number) {
             Ok(inv) => items.push(inv.to_ref()?),
             Err(_) => {
-                let new_item = create_item(&part.part_number, qb).await?;
+                let new_item = {
+                    let part_number: &str = &part.part_number;
+                    let item = Item::new().name(part_number).build()?;
+                    item.create(qb).await?
+                };
                 items.push(new_item.to_ref()?)
             }
         }
     }
     Ok(items)
-}
-
-async fn create_item(part_number: &str, qb: &Quickbooks) -> Result<Item> {
-    let item = Item::new().name(part_number).build()?;
-
-    Ok(item.create(qb).await?)
 }
