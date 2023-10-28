@@ -3,6 +3,7 @@
 
   import { appWindow } from "@tauri-apps/api/window";
   import Dropdown from "./Dropdown.svelte";
+  import { fly } from "svelte/transition";
 
   enum State {
     CLAIM_FORM = "CLAIM_FORM",
@@ -38,6 +39,15 @@
     let item = event.detail;
     item.action();
   };
+
+  let email = "";
+  let name = "";
+  let description = "";
+  let bug_report = false;
+
+  function submitReport() {
+    console.log("MF TRIED")
+  }
 </script>
 
 <br />
@@ -49,6 +59,50 @@
     <Dropdown {items} on:select={handleSelect} />
   </div>
 
+  <a
+    on:click={() => (bug_report = true)}
+    class="titlebar-button"
+    id="titlebar-minimize"
+    style="right:{space * 3}px"
+    {href}
+  >
+    <i class="material-icons">bug_report</i>
+  </a>
+{#if bug_report}
+  <dialog open="true" transition:fly>
+    <div id="bug-form">
+      <article style="width: 95vw">
+        <div style="display: flex; justify-content: space-evenly;">
+          <h1>Bug Report</h1>
+          <button
+            class="delete"
+            on:click|preventDefault={() => (bug_report = false)}
+          >
+            <i class="material-icons">close</i>
+          </button>
+        </div>
+        <form>
+          <label>
+            Name:
+            <input bind:value={name} />
+          </label>
+
+          <label>
+            Email:
+            <input type="email" bind:value={email} />
+          </label>
+
+          <label>
+            Description:
+            <textarea bind:value={description} style="resize: none;" />
+          </label>
+
+          <button on:click={submitReport}> Submit </button>
+        </form>
+      </article>
+    </div>
+  </dialog>
+{/if}
   <a
     on:click={() => appWindow.minimize()}
     class="titlebar-button"
@@ -129,6 +183,33 @@
     height: 37px;
     width: 35px;
     color: antiquewhite;
+  }
+  .delete {
+    background: rgb(126, 21, 21);
+    color: rgb(219, 219, 219);
+    border: rgb(78, 13, 13);
+    /* padding: 0;
+    margin-top: auto;
+    margin-bottom: auto;
+    left: 10px; */
+    transition: 0.3s ease;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    width: 45px;
+    height: 40px;
+    border-radius: 50%;
+    box-shadow: none;
+  }
+
+  .delete:hover {
+    background: darkred;
+    transform: scale(1.1);
+  }
+
+  .delete:active {
+    background: darkred;
+    transform: scale(0.9);
   }
   h5 {
     margin-top: 2px;
