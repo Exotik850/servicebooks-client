@@ -1,6 +1,6 @@
 <script lang="ts">
   // @ts-nocheck
-  import { slide } from "svelte/transition";
+  import { slide, fly } from "svelte/transition";
 
   export let invoice;
 
@@ -14,6 +14,9 @@
       part_number: "",
       invoice_number: null,
       distributor_number: null,
+      description: null,
+      desc_opt: false,
+      id: invoice.parts.length,
     });
     invoice = invoice;
   }
@@ -22,7 +25,18 @@
 <div class="parts-used">
   {#each invoice.parts as part, index (index)}
     <div class:bottom={index != invoice.parts.length - 1} transition:slide>
-      <span>Part {index + 1}</span>
+      <div class="part" style="justify-content: left;">
+        <span>Part {index + 1}</span>|
+        <label data-tooltip="Only used when item not in QB" style="border-bottom: none;" for="description_{part.id}">
+          Description
+          <input
+            type="checkbox"
+            role="switch"
+            id="description_{part.id}"
+            bind:checked={part.desc_opt}
+          />
+        </label>
+      </div>
       <div class="part">
         <label>Part Number: <input bind:value={part.part_number} /></label>
         <label
@@ -43,6 +57,9 @@
           <i class="material-icons">close</i>
         </button>
       </div>
+      {#if part.desc_opt}
+        <input bind:value={part.description} placeholder="Description" transition:slide/>
+      {/if}
     </div>
   {/each}
   <button on:click|preventDefault={addPart} class="add secondary"
@@ -54,7 +71,6 @@
   .part {
     display: flex;
     justify-content: center;
-    align-items: center;
     gap: 5px;
   }
   .bottom {

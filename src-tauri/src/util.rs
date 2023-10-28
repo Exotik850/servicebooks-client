@@ -107,7 +107,6 @@ pub(crate) fn default_qb_invoice(
                         .unwrap(),
                     ))
                 .amount(0.0)
-                // .description(value) // Todo Make description optional field in UI
                 .build()
                 .unwrap());
                 acc
@@ -189,9 +188,9 @@ pub(crate) fn default_sp_claim(
         })
         .collect();
 
-    let purchase_date: String = purchase_date.split('-').collect();
-    let requested_date: String = date_requested.split('-').collect();
-    let completed_date: String = date_completed.split('-').collect();
+    let purchase_date = purchase_date.replace("-", "");
+    let requested_date = date_requested.replace("-", "");
+    let completed_date = date_completed.replace("-", "");
 
     Ok(ClaimBuilder::default()
         .brand_name(HA_MODEL_BRAND)
@@ -300,7 +299,7 @@ pub async fn get_qb_items(parts: &[InputPart], qb: &Quickbooks) -> Result<Vec<Nt
             Err(_) => {
                 let new_item = {
                     let part_number: &str = &part.part_number;
-                    let item = Item::new().name(part_number).build()?;
+                    let item = Item::new().name(part_number).description(&part.description).build()?;
                     item.create(qb).await?
                 };
                 items.push(new_item.to_ref()?)

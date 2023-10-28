@@ -5,9 +5,11 @@ use service_poxi::ClaimUnion;
 #[derive(Deserialize, Serialize)]
 pub struct InputPart {
     pub part_number: String,
-    pub description: Option<String>,
     pub invoice_number: String,
     pub distributor_number: String,
+    desc_opt: bool,
+    pub description: String,
+    id: u32,
 }
 
 #[derive(Deserialize, Serialize, Default)]
