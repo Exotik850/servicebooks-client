@@ -132,21 +132,6 @@ async fn login(app_handle: AppHandle, token: String) -> Result<()> {
 }
 
 #[tauri::command]
-async fn show_main(app_handle: AppHandle) -> Result<()> {
-    let state: State<QBState> = app_handle.state();
-    if state.0.lock().await.is_some() {
-        let window = app_handle
-            .get_window("main")
-            .ok_or(ServiceBooksError::MissingWindow("main"))?;
-        window.show()?;
-    } else {
-        return Err(ServiceBooksError::QBUninitError);
-    }
-
-    Ok(())
-}
-
-#[tauri::command]
 async fn upload_document(
     file_path: String,
     upload_qb: bool,
@@ -225,9 +210,8 @@ async fn main() {
         .invoke_handler(tauri::generate_handler![
             submit_claim,
             get_claim,
-            login,
-            show_main,
             upload_document,
+            login,
         ])
         .setup(move |app| {
             let window = app.get_window("main").expect("No main window on startup");
