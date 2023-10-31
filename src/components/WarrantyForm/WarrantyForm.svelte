@@ -9,7 +9,8 @@
   import Codes from "./Codes.svelte";
   import { ValidationError } from "yup";
   import { invoiceSchema } from "./invoiceSchema";
-  import { displayObject } from "../displayObject";
+  import { displayObject } from "../util";
+  import ErrorPanel from "../ErrorPanel.svelte";
 
   const progress = tweened(1, {
     duration: 400,
@@ -22,11 +23,9 @@
     parts: [],
   };
 
-  let errors = null;
   let getQb = false;
   let getSb = false;
-  let loading = false;
-  let success = null;
+  let validationErrors = [];
 
   let notSubmittable;
   $: notSubmittable = (!getQb && !getSb) || (!getQb && !invoice.claim_number);
@@ -35,44 +34,37 @@
     invoice.claim_number = null;
   }
 
-  async function submitClaim() {
-    loading = true;
-    success = null;
-    errors = {};
+  function submitClaimPromise() {
     console.log("Trying submit");
 
-    try {
-      await invoiceSchema.validate(invoice, { abortEarly: false });
+    return new Promise((resolve, reject) => {
+      invoiceSchema.validate(invoice, { abortEarly: false }).catch((err) =>
+        reject(
+          err.inner.reduce((acc, err) => {
+            return {
+              ...acc,
+              [err.message]: "",
+            };
+          }, {})
+        )
+      );
       console.log("Validated");
       invoice.phone_number = invoice.phone_number.replaceAll(/[^\d]/g, "");
-      success = await invoke("submit_claim", {
+      invoke("submit_claim", {
         claim: invoice,
         getSb,
-      });
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        errors = error.inner.reduce((acc, err) => {
-          return {
-            ...acc,
-            [err.message]: "",
+      })
+        .catch((err) => reject(err))
+        .then((success) => {
+          invoice = {
+            parts: [],
           };
-        }, {});
-      } else {
-        errors = error;
-      }
-    } finally {
-      loading = false;
-    }
-
-    if (errors) {
-      console.error(errors);
-    } else {
-      invoice = {
-        parts: [],
-      };
-    }
+          resolve(success);
+        });
+    });
   }
 
+  let panel;
   let step = 0;
   let numSteps = 3;
 
@@ -214,34 +206,7 @@
         <Parts {invoice} />
       </div>
       <div style="margin: auto; width: 95vw">
-        {#if loading}
-          <article aria-busy="true" />
-        {:else if success != null}
-          <article style="background-color: green;">
-            <h1>Success!</h1>
-            {@html displayObject(success)}
-          </article>
-        {:else if errors != null}
-          <article style="background-color: red;">
-            {#if typeof errors === "object"}
-              {#each Object.entries(errors) as [key, _]}
-                <input
-                  type="text"
-                  placeholder={key}
-                  readonly
-                  aria-invalid="true"
-                />
-              {/each}
-            {:else}
-              <input
-                type="text"
-                placeholder={errors}
-                readonly
-                aria-invalid="true"
-              />
-            {/if}
-          </article>
-        {/if}
+        <ErrorPanel func={() => {return submitClaimPromise()}} bind:panel />
       </div>
       <div class="form-section">
         <div class="submit-select">
@@ -275,7 +240,7 @@
           >
         {/if}
         <button
-          on:click|preventDefault={submitClaim}
+          on:click|preventDefault={panel.activate}
           data-tooltip="Make sure you have everything you need!"
           disabled={notSubmittable}>Submit</button
         >
