@@ -31,24 +31,32 @@ async fn submit_claim(
 ) -> Result<HAInvoice> {
     let qb: State<QBState> = app_handle.state();
     let sp: State<SPState> = app_handle.state();
-
+    
     let qb_ref = qb.0.lock().await;
     let qb_ref = qb_ref.as_ref().ok_or(ServiceBooksError::QBLockError)?;
 
     let (mut qb_invoice, claim_number) = if let Some(data) = &claim.claim_number {
-        (None, data.clone())
+      (None, data.clone())
     } else {
-        let doc_number = generate_claim_number(qb_ref).await?;
-
-        let cust = get_qb_customer(&claim, qb_ref).await?;
-
-        let items = get_qb_items(&claim.parts, qb_ref).await?;
-
-        let inv = default_qb_invoice(cust.to_ref()?, items, doc_number.clone(), &claim);
-        (Some(inv.create(qb_ref).await?), doc_number)
+      let doc_number = generate_claim_number(qb_ref).await?;
+      
+      let cust = get_qb_customer(&claim, qb_ref).await?;
+      
+      let items = get_qb_items(&claim.parts, qb_ref).await?;
+      
+      let inv = default_qb_invoice(cust.to_ref()?, items, doc_number.clone(), &claim);
+      (Some(inv.create(qb_ref).await?), doc_number)
     };
+    let mut message = format!("There was a new Claim submitted with Servicebooks with Claim Number: {claim_number}\n\t");
 
-    let sp_claim = get_sb.then_some(send_sp(claim, claim_number, &sp.0).await?);
+    if let Some(_) = qb_invoice.as_ref() {
+      message.push_str("-Sent claim to Quickbooks\n\t")
+    }
+
+    let sp_claim = get_sb.then_some(send_sp(claim.clone(), claim_number, &sp.0).await?);
+    if let Some(_) = sp_claim.as_ref() {
+      message.push_str("-Sent claim to ServicePower\n\t");
+    }
 
     if let Some(claim) = sp_claim.as_ref() {
         let mut qb_inv = qb_invoice.unwrap_or(qb_query!(
@@ -68,8 +76,13 @@ async fn submit_claim(
         )
         .await?;
 
+        message.push_str("-Updated the memo in QB\n\n");
         qb_invoice = Some(qb_inv);
     }
+
+    message.push_str(&serde_json::to_string_pretty(&claim)?);
+
+    let _ = send_email("iamabotforme@gmail.com".into(), "Claim uploaded".into(), message, &app_handle).await;
 
     Ok(HAInvoice {
         qb_invoice,
@@ -142,6 +155,7 @@ async fn upload_document(
     file_path: String,
     upload_qb: bool,
     upload_sp: bool,
+    is_sales_receipt: bool,
     claim_number: String,
     image_description: String,
     app_handle: AppHandle,
@@ -158,11 +172,11 @@ async fn upload_document(
             .as_ref()
             .ok_or(ServiceBooksError::UninitError("QB"))?;
 
-        let a_ref: AttachableRef = match claim_number.strip_suffix("SR") {
-            Some(number) => qb_query!(qb_ref, SalesReceipt | doc_number = number)?
+        let a_ref: AttachableRef = match is_sales_receipt {
+            true => qb_query!(qb_ref, SalesReceipt | doc_number = &claim_number)?
                 .to_ref()?
                 .into(),
-            None => qb_query!(qb_ref, Invoice | doc_number = &claim_number)?
+            false => qb_query!(qb_ref, Invoice | doc_number = &claim_number)?
                 .to_ref()?
                 .into(),
         };
@@ -179,45 +193,66 @@ async fn upload_document(
     if upload_sp {
         let sp: State<SPState> = app_handle.state();
         sp.0.upload_document_by_claim_number(
-            claim_number,
+            claim_number.clone(),
             file_path,
             "MIS".into(), // TODO Find out wth this is
-            Some(image_description),
+            Some(image_description.clone()),
         )
         .await
         .map_err(ServiceBooksError::SPError)?;
     }
 
+    let sent = format!(
+      "{}|{}",
+      if upload_qb { "Quickbooks" } else { "" },
+      if upload_sp { "Servicepower" } else { "" }, 
+    );
+
+    let _ = send_email("iamabotforme@gmail.com".into(), "Document uploaded".into(), format!("There was a document uploaded with Claim Number: {claim_number} and Description: {image_description} to [{sent}]"), &app_handle).await;
+
     Ok(())
 }
 
-use lettre::{
-    AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor
-};
+use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 
 #[derive(Debug)]
 struct LettrePack {
     transport: AsyncSmtpTransport<Tokio1Executor>,
-    session: SessionConfig
+    session: SessionConfig,
 }
 
 #[tauri::command]
-async fn send_email(
+async fn bug_report(
     name: String,
     email: String,
     description: String,
     app_handle: AppHandle,
+) -> Result<String> {
+    send_email(
+        email.clone(),
+        format!("{name} submitted a bug report"),
+        format!(
+            "[{datetime}] {name} submitted a bug report from {email}: {description}",
+            datetime = Utc::now().naive_local()
+        ),
+        &app_handle,
+    )
+    .await
+}
+
+async fn send_email(
+    email: String,
+    subject: String,
+    body: String,
+    app_handle: &AppHandle,
 ) -> Result<String> {
     let state: State<SMTPState> = app_handle.state();
 
     let email = Message::builder()
         .from(email.parse().expect("Could not parse email"))
         .to("iamabotforme@gmail.com".parse().unwrap())
-        .subject(format!("{name} submitted a bug report"))
-        .body(format!(
-            "[{datetime}] {name} submitted a bug report from {email}: {description}",
-            datetime = Utc::now()
-        ))
+        .subject(subject)
+        .body(body)
         .expect("Could not make message");
 
     state.0.transport.send(email).await?;
@@ -263,7 +298,7 @@ async fn main() -> Result<()> {
             submit_claim,
             get_claim,
             upload_document,
-            send_email,
+            bug_report,
             login,
         ])
         .setup(move |app| {
@@ -318,15 +353,18 @@ fn handle_close_requested(window: &tauri::Window) {
 }
 
 fn cleanup(window: &tauri::Window) {
-  let qb: State<'_, QBState> = window.state();
-  if let Some(lock) = qb.0.try_lock() {
-    if let Some(qb) = lock.as_ref() {
-      let this = qb.cleanup();
-      futures::executor::block_on(this).expect("Could not clean up QB Manager");
+    let qb: State<'_, QBState> = window.state();
+    if let Some(lock) = qb.0.try_lock() {
+        if let Some(qb) = lock.as_ref() {
+            let this = qb.cleanup();
+            futures::executor::block_on(this).expect("Could not clean up QB Manager");
+        }
     }
-  }
 
-  let smtp: State<SMTPState> = window.state();
-  let this = smtp.0.session.save(r"\\10.1.10.24\HamiltonShare\session_config.dat");
-  futures::executor::block_on(this).expect("Could not save session config!");
+    let smtp: State<SMTPState> = window.state();
+    let this = smtp
+        .0
+        .session
+        .save(r"\\10.1.10.24\HamiltonShare\session_config.dat");
+    futures::executor::block_on(this).expect("Could not save session config!");
 }

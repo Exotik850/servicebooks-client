@@ -2,7 +2,7 @@ use quick_oxibooks::types::{Invoice, QBItem, QBToRef};
 use serde::{Deserialize, Serialize};
 use service_poxi::ClaimUnion;
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Clone)]
 pub struct InputPart {
     pub part_number: String,
     pub invoice_number: String,
@@ -12,7 +12,7 @@ pub struct InputPart {
     id: u32,
 }
 
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize, Default, Clone)]
 #[serde(default)]
 pub struct InputInvoice {
     pub first_name: String,

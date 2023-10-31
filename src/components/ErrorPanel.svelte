@@ -18,12 +18,15 @@
     setSuccess(success: string) {
       msg.success = success
     },
-    activate() {
-      loading = true;
+    reset() {
       msg = {
         error: undefined,
-        success: undefined,
+        success: undefined
       };
+    },
+    activate() {
+      loading = true;
+      this.reset()
 
       func()
         .then((succ: string) => (msg.success = succ))
@@ -49,6 +52,3 @@
     {msg.success}
   </article>
 {/if}
-
-<style>
-</style>

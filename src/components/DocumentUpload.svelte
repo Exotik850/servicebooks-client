@@ -31,7 +31,7 @@
   onDestroy(() => {
     unlisten();
   });
-  
+
   // let errors = [];
   // let success = null;
   // let sent = null;
@@ -39,15 +39,13 @@
   let filePath = null;
   let uploadQb = false;
   let uploadSp = false;
+  let isSalesReceipt = false;
   let claimNumber = "";
   let imageDescription = "";
   $: currentImageView = filePath ? convertFileSrc(filePath) : "";
 
   async function getDocuments() {
-    errorPanel.msg = {
-      error: undefined,
-      success: undefined,
-    };
+    errorPanel.reset();
     let newImage = await open({
       multiple: false,
       title: "Select documents",
@@ -58,18 +56,18 @@
         },
       ],
     }).catch((error) => {
-      console.error(error)
+      errorPanel.setError(error);
     });
     filePath = newImage;
   }
 
   function submitDocumentPromise() {
-
     return new Promise((resolve, reject) => {
       invoke("upload_document", {
         filePath,
         uploadQb,
         uploadSp,
+        isSalesReceipt,
         claimNumber,
         imageDescription,
       })
@@ -88,8 +86,7 @@
           resolve("Successfully uploaded " + filePath + " to " + sent);
         })
         .catch((err) => reject(err));
-    })
-
+    });
   }
 </script>
 
@@ -101,11 +98,19 @@
       >
       <button on:click={getDocuments}>Choose Document</button>
     </div>
-    <ErrorPanel func={submitDocumentPromise} bind:panel={errorPanel}/>
+    <ErrorPanel func={submitDocumentPromise} bind:panel={errorPanel} />
     {#if filePath !== null}
       <div class="container">
         <img class="image" src={currentImageView} alt="Selected document" />
         <br />
+        <label for="sales-receipt"
+          >Sales Receipt <input
+            id="sales-receipt"
+            type="checkbox"
+            role="switch"
+            bind:checked={isSalesReceipt}
+          /></label
+        >
         <input placeholder="Claim Number" bind:value={claimNumber} />
         <textarea
           rows="2"
@@ -125,7 +130,11 @@
                 bind:checked={uploadQb}
               />
             </label>
-            <label for="servicepower" data-tooltip="Disabled for now" style="border-bottom: none;">
+            <label
+              for="servicepower"
+              data-tooltip="Disabled for now"
+              style="border-bottom: none;"
+            >
               Servicepower
               <input
                 type="checkbox"
