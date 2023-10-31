@@ -1,19 +1,13 @@
 use quick_oxibooks::{
-    actions::QBCreate,
-    client::Quickbooks,
-    qb_query,
-    types::{
-        common::{Addr, CustomField, Email, NtRef, PhoneNumber, TxnTaxDetail},
-        Customer, Invoice, Item, LineBuilder, LineDetail, QBToRef, SalesItemLineDetailBuilder,
-        TaxLineDetail,
-    },
+    actions::QBCreate, client::Quickbooks, qb_query, types::{
+        common::{Addr, CustomField, Email, NtRef, PhoneNumber, TxnTaxDetail}, Customer, Invoice, Item, LineBuilder, LineDetail, QBToRef, SalesItemLineDetailBuilder, TaxLineDetail
+    }
 };
 use service_poxi::{Claim, ClaimBuilder, ClaimHandler, ClaimUnion, MessageContainer};
 
 use super::Result;
 use crate::{
-    error::ServiceBooksError,
-    models::{InputInvoice, InputPart},
+    error::ServiceBooksError, models::{InputInvoice, InputPart}
 };
 
 pub const HA_MANUFACTURER: &str = "ALLIANCE - SPEED QUEEN";

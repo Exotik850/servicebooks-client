@@ -33,8 +33,8 @@
     </Transition>
   {:else if state === State.DOCUMENT_UPLOAD}
     <Transition>
-      <!-- <DocumentUpload /> -->
-      <p>Working on it!</p>
+      <DocumentUpload />
+      <!-- <p>Working on it!</p> -->
     </Transition>
   {/if}
 </div>
