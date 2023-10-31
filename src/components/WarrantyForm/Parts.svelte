@@ -58,7 +58,7 @@
         </button>
       </div>
       {#if part.desc_opt}
-        <input bind:value={part.description} placeholder="Description" transition:slide/>
+        <input bind:value={part.description} placeholder="Part Description" transition:slide/>
       {/if}
     </div>
   {/each}
@@ -70,7 +70,7 @@
 <style>
   .part {
     display: flex;
-    justify-content: center;
+    justify-content:space-around;
     gap: 5px;
   }
   .bottom {

@@ -3,7 +3,9 @@
 
   import { appWindow } from "@tauri-apps/api/window";
   import Dropdown from "./Dropdown.svelte";
-  import { fly } from "svelte/transition";
+  import { fly, blur } from "svelte/transition";
+  import { invoke } from "@tauri-apps/api";
+  import ErrorPanel from "./ErrorPanel.svelte";
 
   enum State {
     CLAIM_FORM = "CLAIM_FORM",
@@ -15,21 +17,17 @@
 
   export let state;
 
-  function changeState(changeTo) {
-    state = changeTo;
-  }
-
   let items = [
-    { id: 1, label: "Claim Form", action: () => changeState(State.CLAIM_FORM) },
+    { id: 1, label: "Claim Form", action: () => state = State.CLAIM_FORM },
     {
       id: 2,
       label: "Document Upload",
-      action: () => changeState(State.DOCUMENT_UPLOAD),
+      action: () => state = State.DOCUMENT_UPLOAD,
     },
     {
       id: 3,
       label: "Claim Search",
-      action: () => changeState(State.CLAIM_SEARCH),
+      action: () => state = State.CLAIM_SEARCH,
     },
   ];
 
@@ -45,9 +43,29 @@
   let description = "";
   let bug_report = false;
 
-  function submitReport() {
-    console.log("MF TRIED")
+  async function submitReport() {
+    if (!bug_report) {
+      return;
+    }
+    panel.activate();
   }
+
+  function submitPromise() {
+    return new Promise((resolve, reject) => {
+      let args = { name, email, description }
+      invoke("send_email", args)
+      .catch((err) => reject(err))
+      .then((succ) => {
+        name = ""
+        email = ""
+        description = ""
+        resolve(succ);
+      })
+
+    })
+  }
+
+  let panel;
 </script>
 
 <br />
@@ -68,41 +86,40 @@
   >
     <i class="material-icons">bug_report</i>
   </a>
-{#if bug_report}
-  <dialog open="true" transition:fly>
-    <div id="bug-form">
-      <article style="width: 95vw">
-        <div style="display: flex; justify-content: space-evenly;">
+  {#if bug_report}
+    <dialog open="true" transition:blur>
+      <div id="bug-form">
+        <article style="width: 95vw">
+          <ErrorPanel
+            func={submitPromise}
+            bind:panel
+          />
           <h1>Bug Report</h1>
-          <button
-            class="delete"
-            on:click|preventDefault={() => (bug_report = false)}
-          >
-            <i class="material-icons">close</i>
-          </button>
-        </div>
-        <form>
-          <label>
-            Name:
-            <input bind:value={name} />
-          </label>
+          <form>
+            <label>
+              Name:
+              <input bind:value={name} />
+            </label>
 
-          <label>
-            Email:
-            <input type="email" bind:value={email} />
-          </label>
+            <label>
+              Email:
+              <input type="email" bind:value={email} />
+            </label>
 
-          <label>
-            Description:
-            <textarea bind:value={description} style="resize: none;" />
-          </label>
+            <label>
+              Description:
+              <textarea bind:value={description} style="resize: none;" />
+            </label>
 
-          <button on:click={submitReport}> Submit </button>
-        </form>
-      </article>
-    </div>
-  </dialog>
-{/if}
+            <div style="display:flex; gap: 5px">
+              <button on:click={submitReport}> Submit </button>
+              <button on:click={() => (bug_report = false)} class="cancel"> Cancel </button>
+            </div>
+          </form>
+        </article>
+      </div>
+    </dialog>
+  {/if}
   <a
     on:click={() => appWindow.minimize()}
     class="titlebar-button"
@@ -184,32 +201,10 @@
     width: 35px;
     color: antiquewhite;
   }
-  .delete {
-    background: rgb(126, 21, 21);
-    color: rgb(219, 219, 219);
-    border: rgb(78, 13, 13);
-    /* padding: 0;
-    margin-top: auto;
-    margin-bottom: auto;
-    left: 10px; */
-    transition: 0.3s ease;
-    justify-content: center;
-    align-items: center;
-    display: flex;
-    width: 45px;
-    height: 40px;
-    border-radius: 50%;
-    box-shadow: none;
-  }
-
-  .delete:hover {
-    background: darkred;
-    transform: scale(1.1);
-  }
-
-  .delete:active {
-    background: darkred;
-    transform: scale(0.9);
+  .cancel {
+    background-color: red;
+    border:red;
+    color:white;
   }
   h5 {
     margin-top: 2px;

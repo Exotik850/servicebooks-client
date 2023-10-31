@@ -2,7 +2,7 @@
   //@ts-nocheck
 
   import { invoke } from "@tauri-apps/api";
-  import { displayObject } from "./displayObject";
+  import { displayObject } from "./util";
   import Transition from "./Transition.svelte";
 
   let claimNumber = "";

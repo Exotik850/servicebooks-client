@@ -5,6 +5,12 @@ pub enum ServiceBooksError {
     #[error(transparent)]
     TauriError(#[from] tauri::Error),
     #[error(transparent)]
+    TokioIOError(#[from] tokio::io::Error),
+    #[error(transparent)]
+    SerdeJsonError(#[from] serde_json::Error),
+    #[error(transparent)]
+    SMTPError(#[from] lettre::transport::smtp::Error),
+    #[error(transparent)]
     QBError(#[from] QBError),
     #[error(transparent)]
     QBAPIError(#[from] APIError),
@@ -26,8 +32,8 @@ pub enum ServiceBooksError {
     EmptyClaimResponse,
     #[error("Could not grab lock on Quickbooks Manager")]
     QBLockError,
-    #[error("Quickbooks Manager not initialized")]
-    QBUninitError,
+    #[error("{0} Manager not initialized")]
+    UninitError(&'static str),
     #[error("Missing window for label: {0}")]
     MissingWindow(&'static str),
 }

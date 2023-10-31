@@ -1,15 +1,18 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod config;
 mod error;
 mod models;
 mod util;
 
+use chrono::Utc;
+use config::SessionConfig;
 use error::ServiceBooksError;
 use futures::lock::Mutex;
 use models::*;
 use quick_oxibooks::{
-    actions::QBCreate, client::Quickbooks, qb_query, types::{Attachable, Invoice, QBToRef}, Environment, QBAttachment
+    actions::QBCreate, client::Quickbooks, qb_query, types::{Attachable, AttachableRef, Invoice, QBToRef, SalesReceipt}, Environment, QBAttachment
 };
 use service_poxi::ClaimHandler;
 use tauri::{generate_context, AppHandle, GlobalWindowEvent, Manager, State, WindowEvent};
@@ -17,6 +20,7 @@ use util::*;
 
 struct QBState(Mutex<Option<Quickbooks>>);
 struct SPState(ClaimHandler);
+struct SMTPState(LettrePack);
 type Result<T> = std::result::Result<T, ServiceBooksError>;
 
 #[tauri::command]
@@ -85,7 +89,9 @@ async fn get_claim(
     if get_qb {
         let qb: State<QBState> = app_handle.state();
         let qb_ref = qb.0.lock().await;
-        let qb_ref = qb_ref.as_ref().ok_or(ServiceBooksError::QBUninitError)?;
+        let qb_ref = qb_ref
+            .as_ref()
+            .ok_or(ServiceBooksError::UninitError("QB"))?;
         out.qb_invoice = Some(qb_query!(qb_ref, Invoice | doc_number = claim_number)?);
     }
 
@@ -148,11 +154,18 @@ async fn upload_document(
     if upload_qb {
         let qb: State<QBState> = app_handle.state();
         let qb_ref = qb.0.lock().await;
-        let qb_ref = qb_ref.as_ref().ok_or(ServiceBooksError::QBUninitError)?;
+        let qb_ref = qb_ref
+            .as_ref()
+            .ok_or(ServiceBooksError::UninitError("QB"))?;
 
-        let obj = qb_query!(qb_ref, Invoice | doc_number = &claim_number)?;
-
-        let a_ref = obj.to_ref()?.into();
+        let a_ref: AttachableRef = match claim_number.strip_suffix("SR") {
+            Some(number) => qb_query!(qb_ref, SalesReceipt | doc_number = number)?
+                .to_ref()?
+                .into(),
+            None => qb_query!(qb_ref, Invoice | doc_number = &claim_number)?
+                .to_ref()?
+                .into(),
+        };
 
         let attach = Attachable {
             attachable_ref: Some(vec![a_ref]),
@@ -168,7 +181,7 @@ async fn upload_document(
         sp.0.upload_document_by_claim_number(
             claim_number,
             file_path,
-            "CG1".into(), // TODO Find out wth this is
+            "MIS".into(), // TODO Find out wth this is
             Some(image_description),
         )
         .await
@@ -178,9 +191,48 @@ async fn upload_document(
     Ok(())
 }
 
+use lettre::{
+    AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor
+};
+
+#[derive(Debug)]
+struct LettrePack {
+    transport: AsyncSmtpTransport<Tokio1Executor>,
+    session: SessionConfig
+}
+
+#[tauri::command]
+async fn send_email(
+    name: String,
+    email: String,
+    description: String,
+    app_handle: AppHandle,
+) -> Result<String> {
+    let state: State<SMTPState> = app_handle.state();
+
+    let email = Message::builder()
+        .from(email.parse().expect("Could not parse email"))
+        .to("iamabotforme@gmail.com".parse().unwrap())
+        .subject(format!("{name} submitted a bug report"))
+        .body(format!(
+            "[{datetime}] {name} submitted a bug report from {email}: {description}",
+            datetime = Utc::now()
+        ))
+        .expect("Could not make message");
+
+    state.0.transport.send(email).await?;
+
+    Ok("Successfully emailed bug report".into())
+}
+
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<()> {
     pretty_env_logger::init();
+
+    let session = SessionConfig::load(r"\\10.1.10.24\HamiltonShare\session_config.dat").await?; // TODO Put this under a domain instead of localhost
+    let transport = session.clone().try_into()?;
+
+    let pack = LettrePack { transport, session };
 
     let qb = if let Ok(data) = intuit_oxi_auth::TokenSession::grab_from_cache_async(
         intuit_oxi_auth::Environment::PRODUCTION.cache_name(),
@@ -211,6 +263,7 @@ async fn main() {
             submit_claim,
             get_claim,
             upload_document,
+            send_email,
             login,
         ])
         .setup(move |app| {
@@ -228,46 +281,52 @@ async fn main() {
         .manage(SPState(
             ClaimHandler::new_from_env().expect("Could not find ServicePower credentials!"),
         ))
+        .manage(SMTPState(pack))
         .on_window_event(handle_window_event)
         .run(generate_context!())
         .expect("error while starting tauri application");
+
+    Ok(())
 }
 
 fn handle_window_event(event: GlobalWindowEvent) {
     let window = event.window();
-    let state = window.state();
-
     match event.event() {
         WindowEvent::CloseRequested { api, .. } => {
             api.prevent_close();
-            handle_close_requested(window, state);
+            handle_close_requested(window);
         }
-        WindowEvent::Destroyed if window.label() == "main" => {
-            close(state.inner());
-        }
+        WindowEvent::Destroyed if window.label() == "main" => handle_close_requested(window),
         _ => {}
     }
 }
 
-fn handle_close_requested(window: &tauri::Window, state: State<QBState>) {
+fn handle_close_requested(window: &tauri::Window) {
     match window.label() {
         "login" => {
             if let Some(main) = window.get_window("main") {
                 main.close().expect("Could not close main window");
             }
         }
-        "main" => close(state.inner()),
+        "main" => {
+            cleanup(window);
+        }
         _ => (),
     }
 
     window.close().expect("Could not close window!");
 }
 
-fn close(qb: &QBState) {
-    if let Some(lock) = qb.0.try_lock() {
-        if let Some(qb) = lock.as_ref() {
-            let this = qb.cleanup();
-            futures::executor::block_on(this).expect("Couldn't clean up Quickbooks client");
-        }
+fn cleanup(window: &tauri::Window) {
+  let qb: State<'_, QBState> = window.state();
+  if let Some(lock) = qb.0.try_lock() {
+    if let Some(qb) = lock.as_ref() {
+      let this = qb.cleanup();
+      futures::executor::block_on(this).expect("Could not clean up QB Manager");
     }
+  }
+
+  let smtp: State<SMTPState> = window.state();
+  let this = smtp.0.session.save(r"\\10.1.10.24\HamiltonShare\session_config.dat");
+  futures::executor::block_on(this).expect("Could not save session config!");
 }

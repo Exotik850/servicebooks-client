@@ -1,13 +1,19 @@
 use quick_oxibooks::{
-    actions::QBCreate, client::Quickbooks, qb_query, types::{
-        common::{Addr, CustomField, Email, NtRef, PhoneNumber, TxnTaxDetail}, Customer, Invoice, Item, LineBuilder, LineDetail, QBToRef, SalesItemLineDetailBuilder, TaxLineDetail
-    }
+    actions::QBCreate,
+    client::Quickbooks,
+    qb_query,
+    types::{
+        common::{Addr, CustomField, Email, NtRef, PhoneNumber, TxnTaxDetail},
+        Customer, Invoice, Item, LineBuilder, LineDetail, QBToRef, SalesItemLineDetailBuilder,
+        TaxLineDetail,
+    },
 };
 use service_poxi::{Claim, ClaimBuilder, ClaimHandler, ClaimUnion, MessageContainer};
 
 use super::Result;
 use crate::{
-    error::ServiceBooksError, models::{InputInvoice, InputPart}
+    error::ServiceBooksError,
+    models::{InputInvoice, InputPart},
 };
 
 pub const HA_MANUFACTURER: &str = "ALLIANCE - SPEED QUEEN";
@@ -299,7 +305,10 @@ pub async fn get_qb_items(parts: &[InputPart], qb: &Quickbooks) -> Result<Vec<Nt
             Err(_) => {
                 let new_item = {
                     let part_number: &str = &part.part_number;
-                    let item = Item::new().name(part_number).description(&part.description).build()?;
+                    let item = Item::new()
+                        .name(part_number)
+                        .description(&part.description)
+                        .build()?;
                     item.create(qb).await?
                 };
                 items.push(new_item.to_ref()?)
